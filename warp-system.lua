@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.1 by Nexus on 08-01-2015 07:58 AM
+ Version 0.0.1 by Nexus on 01-08-2015 07:58 AM  (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Warp System"
@@ -26,30 +26,62 @@ PLUGIN.Version = V(0, 0, 1)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 
-local TeleportData = {}
+local WarpData = {}
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- On plugin initialisation the required in-game chat commands are registered and data
+-- from the DataTable file is loaded.
+-- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
       self:LoadSavedData()
-      command.AddChatCommand( "warp",   self.Object, "cmdManageWarp" )
+      command.AddChatCommand( "warp",   self.Object, "cmdWarp" )
 end
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadSavedData()
+-- -----------------------------------------------------------------------------------
+-- Load the DataTable file into a table or create a new table when the file doesn't
+-- exist yet.
+-- -----------------------------------------------------------------------------------
 function PLUGIN:LoadSavedData ()
-      TeleportData = datafile.GetDataTable( "warp-system" )
-      TeleportData = TeleportData or {}
-      TeleportData.WarpPoints =  TeleportData.WarpPoints or {}      
+      WarpData = datafile.GetDataTable( "warp-system" )
+      WarpData = WarpData or {}
+      WarpData.WarpPoints =  WarpData.WarpPoints or {}      
 end
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:SaveData()
+-- -----------------------------------------------------------------------------------
+-- Saves the table with all the warpdata to a DataTable file.
+-- -----------------------------------------------------------------------------------
 function PLUGIN:SaveData()  
     -- Save the DataTable
     datafile.SaveDataTable( "warp-system" )
 end
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadDefaultConfig()
+-- -----------------------------------------------------------------------------------
+-- The plugin uses a configuration file to save certain settings and uses it for
+-- localized messages that are send in-game to the players. When this file doesn't
+-- exist a new one will be created with these default values.
+-- -----------------------------------------------------------------------------------
 function PLUGIN:LoadDefaultConfig () 
  -- General Settings:
     self.Config.Settings = {
         ChatName          = "Warp",
         ConfigVersion     = "0.0.1",
         WarpEnabled       = true
+    }
+    
+    -- Warp System Settings: 
+    self.Config.Warp = {
+        Cooldown          = 600,
+        Countdown         = 15,
+        DailyLimit        = 500,
+        ModeratorsCanManageWarps = true
     }
     
     -- Plugin Messages:
@@ -79,14 +111,16 @@ function PLUGIN:LoadDefaultConfig ()
 
         WarpSettings = {
                 "Warp System as the current settings enabled: ",
-                "Time between goto warps: {cooldown}"
+                "Time between goto warps: {cooldown}",
+                "Daily limit of goto warps: {limit}"
         },
 
         -- Error Messages:
-        WarpNotFound             = "Couldn't find a warp with that name!",
-        InvalidCoordinates       = "The coordinates you've entered are invalid!",
+        WarpNotFound = "Couldn't find a warp with that name!",
+        InvalidCoordinates = "The coordinates you've entered are invalid!",
+        WarpGotoLimitReached = "You have reached the daily limit of {limit} warp goto today!",
 
-        -- Syntax Errors Admin TP System:
+        -- Syntax Errors Warp System:
         SyntaxCommandWarp = {
             "A Syntax Error Occurred!",
             "You can only use the /warp command as follows:",
@@ -99,4 +133,59 @@ function PLUGIN:LoadDefaultConfig ()
             "/warp list - List all saved warps."
         }
     }
+    
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:IsAllowed( player )
+-- -----------------------------------------------------------------------------------
+-- Checks if the player is allowed to run an admin (or moderator) only command.
+-- -----------------------------------------------------------------------------------
+-- Credit: m-Teleportation
+
+function PLUGIN:IsAllowed( player )
+    -- Grab the player his AuthLevel and set the required AuthLevel.
+    local playerAuthLevel = player:GetComponent("BaseNetworkable").net.connection.authLevel
+    local requiredAuthLevel = 2
+    
+    -- Check if Moderators are also allowed to use the commands.
+    if self.Config.Warp.ModeratorsCanManage then
+        -- Moderators are allowed to run the commands, reduce the required AuthLevel
+        -- to 1.
+        requiredAuthLevel = 1   
+    end
+
+    -- Compare the AuthLevel with the required AuthLevel, if it's higher or equal
+    -- then the user is allowed to run the command.
+    if playerAuthLevel >= requiredAuthLevel then
+        return true
+    end
+
+    return false
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:cmdWarp( player, cmd, args )                               Admin Command
+-- -----------------------------------------------------------------------------------
+-- In-game '/warp' command for server admins to be able to manage warps.
+-- -----------------------------------------------------------------------------------
+function PLUGIN: cmdTeleport( player, cmd, args )
+    -- Check if the Warp System is enabled.
+    if not self.Config.Settings.WarpEnabled then return end
+    
+    -- Check if the player is allowed to run the command.
+    if not self:IsAllowed( player ) then return end
+    
+    -- Check of the command is to add a new warp
+    if args[0] == 'add' then
+      -- Check if the warp is at a current location
+      if args.Length == 2 then
+        -- Test for empty strings
+        if args[1] ~= '' or args[1] ~= ' ' then
+          
+        end            
+      else
+        self:SendMessage( player, self.Config.Messages.SyntaxCommandWarp )
+      end
+    end
 end

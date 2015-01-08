@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.1 by Nexus on 07-01-2015 11:47 PM
+ Version 0.0.2 by Nexus on 01-08-2015 08:53 AM (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Admin door Unlocker"
@@ -25,7 +25,13 @@ PLUGIN.Description = "Unlocks any door for Admins"
 PLUGIN.Version = V(0, 0, 1)
 PLUGIN.Author = "Nexus"
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- When any player try to open any door this function is trigged
+-- -----------------------------------------------------------------------------------
 function PLUGIN:CanOpenDoor( player, door ) 
+    -- Check if player is admin
     if player:GetComponent("BaseNetworkable").net.connection.authLevel == 2 then
         return true
     else
