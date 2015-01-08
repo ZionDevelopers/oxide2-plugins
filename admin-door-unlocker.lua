@@ -17,12 +17,12 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.2 by Nexus on 01-08-2015 04:35 PM (GTM -03:00)
+ Version 0.0.3 by Nexus on 01-08-2015 09:39 PM (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 2)
+PLUGIN.Version = V(0, 0, 3)
 PLUGIN.Author = "Nexus"
 PLUGIN.ResourceId  = 756
 
@@ -34,8 +34,9 @@ PLUGIN.ResourceId  = 756
 function PLUGIN:CanOpenDoor( player, door ) 
     -- Check if player is admin
     if player:GetComponent("BaseNetworkable").net.connection.authLevel == 2 then
-        return true
-    else
-        return nil
+        -- Unlock the door
+        door:SetFlag(global.Flags.Locked, false)
+        -- Lock the door
+        timer.Once(0.1, function() door:SetFlag(global.Flags.Locked,true) end)
     end
 end
