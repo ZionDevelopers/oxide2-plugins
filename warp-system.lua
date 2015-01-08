@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.1 by Nexus on 01-08-2015 07:58 AM  (GTM -03:00)
+ Version 0.0.2 by Nexus on 01-08-2015 12:53 PM  (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Warp System"
@@ -79,17 +79,21 @@ function PLUGIN:LoadDefaultConfig ()
         WarpEnabled = true
     }
     
+    -- Warp config
+     self.Config.Warp = {
+        ModeratorsCanManage = true
+     }
+    
     -- Plugin Messages:
     self.Config.Messages = {
         -- Warp System:    
         WarpRemove = "You have removed the warp {name}!",
         WarpList = "The following warps are available:",
         WarpListEmpty = "There is no warps available at the moment!",
-        WarpTPStarted = "Teleporting to your home {name} in {countdown} seconds!",
-        Warped = "You teleported to the warp '{name}'!",
+        Warped = "You Warped to '{name}'!",
         WarpListEmpty = "There is no warps available!",
         WarpBack = "You've teleported back to your previous location!",
-        WarpBackSave = "Your previous location has been saved, use /warp back to teleport back!",
+        WarpBackSave = "Your previous location has been saved before you warped, use /warp back to teleport back!",
         WarpBoundaries = "X and Z values need to be between -{boundary} and {boundary} while the Y value needs to be between -100 and 2000!",
         WarpSave = "You have saved the {name} warp as {x}, {y}, {z}!",
         WarpDelete = "You have deleted the {name} warp!",
@@ -103,7 +107,6 @@ function PLUGIN:LoadDefaultConfig ()
             "/warp add <name> - Create a new warp at your current location.",
             "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
             "/warp del <name> - Delete a warp.",
-            "/warp ren <old name> <new name> - Rename a warp.",
             "/warp go <name> - Goto a warp.",
             "/warp back - Teleport you back to the location that you was before warp.",
             "/warp list - List all saved warps."
@@ -116,7 +119,7 @@ function PLUGIN:LoadDefaultConfig ()
         },
 
         -- Error Messages:
-        WarpNotFound = "Couldn't find a warp with that name!",
+        WarpNotFound = "Couldn't find the {name} warp !",
         InvalidCoordinates = "The coordinates you've entered are invalid!",
         WarpGotoLimitReached = "You have reached the daily limit of {limit} warp goto today!",
 
@@ -127,7 +130,6 @@ function PLUGIN:LoadDefaultConfig ()
             "/warp add <name> - Create a new warp at your current location.",
             "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
             "/warp del <name> - Delete a warp.",
-            "/warp ren <old name> <new name> - Rename a warp.",
             "/warp go <name> - Goto a warp.",
             "/warp back - Teleport you back to the location that you was before warp.",
             "/warp list - List all saved warps."
@@ -193,7 +195,7 @@ function PLUGIN:cmdWarp( player, _, args )
         y = args[3]
         z = args[4]
     end
-    
+
     -- Check if the command is to add a new warp
     if cmd == 'add' then
         -- Check if the warp is at a current location
@@ -228,6 +230,10 @@ function PLUGIN:cmdWarp( player, _, args )
     elseif cmd == 'list' then
       -- List Warps
        self:WarpList(player)
+    else
+      -- Send message to player
+      self:SendMessage( player, 'Warp command '.. cmd..' is not valid!' )
+      self:SendMessage(player, self.Config.Messages.WarpHelp)  
     end
 end
 
@@ -237,7 +243,18 @@ end
 -- Add a new warp.
 -- -----------------------------------------------------------------------------
 function PLUGIN:WarpAdd ( player, name, x, y, z ) 
+    -- Get current location
     local loc = player.transform.position
+    
+    -- Check if was sent any loc
+    if x ~= 0 and y ~= 0 and z ~= 0 then
+      -- Save new location
+      local loc = {}
+      -- Set new loc
+      loc.x = math.floor( x )
+      loc.y = math.floor( y )
+      loc.z = math.floor( z )
+    end
     
     -- Check if the player is allowed to run the command.
     if self:IsAllowed( player ) then 
@@ -249,7 +266,7 @@ function PLUGIN:WarpAdd ( player, name, x, y, z )
                 WarpData.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
             else
                 -- Add Warp at the the position
-                WarpData.WarpPoints[name] = {x = x, y = y, z = z}
+                WarpData.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
             end
             
             -- Save data
@@ -282,7 +299,7 @@ function PLUGIN:WarpDel( player, name )
           -- Save data
           self:SaveData()
           -- Send message to player
-          self:SendMessage( player, self:Parse( self.Config.Messages.WarpDeleted, {name = name} ) )
+          self:SendMessage( player, self:Parse( self.Config.Messages.WarpDelete, {name = name} ) )
       else
         -- Send message to player
         self:SendMessage( player, self.Config.Messages.WarpNotFound )
@@ -299,6 +316,7 @@ end
 -- Rename a warp.
 -- -----------------------------------------------------------------------------
 function PLUGIN:WarpRen( player, oldname, newname )
+    print(oldname..';'..newname)
     -- Check if the player is allowed to run the command.
     if self:IsAllowed( player ) then 
       -- Check if Warp exists
@@ -313,14 +331,14 @@ function PLUGIN:WarpRen( player, oldname, newname )
               -- Save data
               self:SaveData()
               -- Send message to player
-              self:SendMessage( player, self:Parse( self.Config.Messages.WarpRen, {name = name} ) )
+              self:SendMessage( player, self:Parse( self.Config.Messages.WarpRen, {newname = newname, oldname = oldname} ) )
           else
               -- Send message to player
               self:SendMessage( player, self:Parse( self.Config.Messages.WarpExists, {name = newname} ) )   
           end
       else
         -- Send message to player
-        self:SendMessage( player, self.Config.Messages.WarpNotFound )
+        self:SendMessage( player, self:Parse( self.Config.Messages.WarpNotFound,  {name = oldname} ) )
       end      
     else
         -- Send message to player
@@ -340,6 +358,8 @@ function PLUGIN:WarpUse( player, name )
       self:SendMessage( player, self:Parse( self.Config.Messages.Warped, {name = name} ) )
         -- Teleport Player to Location
         self:TeleportToPosition(player, WarpData.WarpPoints[name].x, WarpData.WarpPoints[name].y, WarpData.WarpPoints[name].z)
+        -- Send message to player
+        self:SendMessage( player, self.Config.Messages.WarpBackSave)
     else
       -- Send message to player
       self:SendMessage( player, self.Config.Messages.WarpNotFound )
@@ -351,12 +371,14 @@ end
 -- -----------------------------------------------------------------------------
 -- Go back to a point where the player was
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpBack( player, name )
+function PLUGIN:WarpBack( player )
     -- Get PlayerID
     local playerID = rust.UserIDFromPlayer( player )
     
     -- Check if player already used the Warp
     if TeleportPreviousLocation[playerID] ~= nil then
+      -- Send message to player      
+      self:SendMessage(player,  self.Config.Messages.WarpBack)
       -- Teleport Player to Location
       self:TeleportToPosition(player, TeleportPreviousLocation[playerID].x, TeleportPreviousLocation[playerID].y, TeleportPreviousLocation[playerID].z)
     end    
