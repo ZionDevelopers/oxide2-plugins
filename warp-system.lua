@@ -29,6 +29,7 @@ PLUGIN.HasConfig = true
 local WarpData = {}
 local TeleportVectors = {}
 local TeleportPreviousLocation = {}
+local MessageClient = UnityEngine.NetworkNetworkable._type:GetMethod( "MessageClient")
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:Init()
@@ -78,22 +79,12 @@ function PLUGIN:LoadDefaultConfig ()
         WarpEnabled = true
     }
     
-    -- Warp System Settings: 
-    self.Config.Warp = {
-        Cooldown = 600,
-        Countdown = 15,
-        DailyGotoLimit = 500,
-        ModeratorsCanManageWarps = true,
-        LocationRadius = 25,
-        WarpNearDefaultDistance = 30
-    }
-    
     -- Plugin Messages:
     self.Config.Messages = {
-        -- Warp System:
-        WarpCooldown = "Your warp requests are currently on cooldown. You'll have to wait {time} to use warp again.",
+        -- Warp System:    
         WarpRemove = "You have removed the warp {name}!",
         WarpList = "The following warps are available:",
+        WarpListEmpty = "There is no warps available at the moment!",
         WarpTPStarted = "Teleporting to your home {name} in {countdown} seconds!",
         Warped = "You teleported to the warp '{name}'!",
         WarpListEmpty = "There is no warps available!",
@@ -247,6 +238,7 @@ end
 -- -----------------------------------------------------------------------------
 function PLUGIN:WarpAdd ( player, name, x, y, z ) 
     local loc = player.transform.position
+    
     -- Check if the player is allowed to run the command.
     if self:IsAllowed( player ) then 
         -- Check if Warp already exists
@@ -306,7 +298,7 @@ end
 -- -----------------------------------------------------------------------------
 -- Rename a warp.
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpRen( player, name )
+function PLUGIN:WarpRen( player, oldname, newname )
     -- Check if the player is allowed to run the command.
     if self:IsAllowed( player ) then 
       -- Check if Warp exists
@@ -344,6 +336,8 @@ end
 function PLUGIN:WarpUse( player, name )
     -- Check if Warp exists
     if WarpData.WarpPoints[name] ~= nil then
+      -- Send message to player
+      self:SendMessage( player, self:Parse( self.Config.Messages.Warped, {name = name} ) )
         -- Teleport Player to Location
         self:TeleportToPosition(player, WarpData.WarpPoints[name].x, WarpData.WarpPoints[name].y, WarpData.WarpPoints[name].z)
     else
@@ -374,13 +368,20 @@ end
 -- List all the saved warps
 -- -----------------------------------------------------------------------------
 function PLUGIN:WarpList(player)
-    -- Send message to player
-    self:SendMessage( player, self.Config.Messages.WarpList)
-     
-    -- Loop through all the saved locations and print them one by one.
-    for location, coordinates in pairs( WarpData.WarpPoints ) do
-        self:SendMessage( player, location .. ": " .. math.floor( coordinates.x ) .. " " .. math.floor( coordinates.y ) .. " " .. math.floor( coordinates.z ) )
-    end 
+
+    -- Count the Warp Points
+    if self:Count(WarpData.WarpPoints) >= 1 then
+        -- Send message to player
+        self:SendMessage( player, self.Config.Messages.WarpList)
+         
+        -- Loop through all the saved locations and print them one by one.
+        for location, coordinates in pairs( WarpData.WarpPoints ) do
+            self:SendMessage( player, location .. ": " .. math.floor( coordinates.x ) .. " " .. math.floor( coordinates.y ) .. " " .. math.floor( coordinates.z ) )
+        end 
+    else
+        -- Send message to player
+        self:SendMessage( player, self.Config.Messages.WarpListEmpty)
+    end
 end
 
 -- -----------------------------------------------------------------------------
@@ -389,14 +390,14 @@ end
 -- Replaces the parameters in a message with the corresponding values.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function PLUGIN:Parse( message, values )
+function PLUGIN:Parse( msg, values )
     for k, v in pairs( values ) do
         -- Replace the variable in the message with the specified value.
         tostring(v):gsub("(%%)", "%%%%") 
-        message = message:gsub( "{" .. k .. "}", v)
+        msg = msg:gsub( "{" .. k .. "}", v)
     end
 
-    return message
+    return msg
 end
 
 
@@ -541,23 +542,25 @@ function PLUGIN:TeleportToPosition( player, x, y, z )
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:OnPlayerChat( args )
+-- PLUGIN:OnRunCommand( args )
 -- -----------------------------------------------------------------------------
 -- Triggerd when any player send a chat message.
 -- -----------------------------------------------------------------------------
-function PLUGIN:OnPlayerChat (arg)
-    if not arg then return end
+function PLUGIN:OnRunCommand(arg)
     if not arg.connection then return end
-    if not arg.connection.player then return end
-    local player = arg.connection.player
+    if not arg.cmd then return end
+    local cmd = arg.cmd.namefull
     local chat = arg:GetString(0, "text")
+    local player = arg.connection.player
     
-     -- Loop through all the saved locations and print them one by one.
-    for location, _ in pairs( WarpData.WarpPoints ) do
-        -- Check for a Warp Location
-        if chat == '/'..location then
-            -- Use Warp
-            self:WarpUse(player, location)
-        end
+    if cmd == "chat.say" and string.sub(chat, 1, 1) == "/" then    
+       -- Loop through all the saved locations and print them one by one.
+      for location, _ in pairs( WarpData.WarpPoints ) do
+          -- Check for a Warp Location
+          if chat == '/'..location then
+              -- Use Warp
+              self:WarpUse(player, location)
+          end
+      end
     end
 end
