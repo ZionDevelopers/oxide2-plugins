@@ -246,7 +246,7 @@ end
 -- Add a new warp.
 -- -----------------------------------------------------------------------------
 function PLUGIN:WarpAdd ( player, name, x, y, z ) 
-    
+    local loc = player.transform.position
     -- Check if the player is allowed to run the command.
     if self:IsAllowed( player ) then 
         -- Check if Warp already exists
@@ -254,7 +254,7 @@ function PLUGIN:WarpAdd ( player, name, x, y, z )
             -- Check for coordinates
             if x == 0 and y == 0 and z == 0 then
                 -- Add Warp at player current location
-                WarpData.WarpPoints[name] = player.transform.position
+                WarpData.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
             else
                 -- Add Warp at the the position
                 WarpData.WarpPoints[name] = {x = x, y = y, z = z}
@@ -263,7 +263,7 @@ function PLUGIN:WarpAdd ( player, name, x, y, z )
             -- Save data
             self:SaveData()
             -- Send message to player
-            self:SendMessage( player, self:Parse( self.Config.Messages.WarpSave, {name = name, x = player.transform.position.x, y = player.transform.position.y, z = player.transform.position.z} ) )
+            self:SendMessage( player, self:Parse( self.Config.Messages.WarpSave, {name = name, x = loc.x, y = loc.y, z = loc.z} ) )
           else
               -- Send message to player
               self:SendMessage( player, self:Parse( self.Config.Messages.WarpExists, {name = name} ) )   
@@ -538,4 +538,26 @@ function PLUGIN:TeleportToPosition( player, x, y, z )
 
     -- Teleport the player to the destination.
     self:Teleport( player, destination )
+end
+
+-- -----------------------------------------------------------------------------
+-- PLUGIN:OnPlayerChat( args )
+-- -----------------------------------------------------------------------------
+-- Triggerd when any player send a chat message.
+-- -----------------------------------------------------------------------------
+function PLUGIN:OnPlayerChat (arg)
+    if not arg then return end
+    if not arg.connection then return end
+    if not arg.connection.player then return end
+    local player = arg.connection.player
+    local chat = arg:GetString(0, "text")
+    
+     -- Loop through all the saved locations and print them one by one.
+    for location, _ in pairs( WarpData.WarpPoints ) do
+        -- Check for a Warp Location
+        if chat == '/'..location then
+            -- Use Warp
+            self:WarpUse(player, location)
+        end
+    end
 end
