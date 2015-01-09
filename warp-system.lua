@@ -17,12 +17,12 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.2 by Nexus on 01-08-2015 04:35 PM (GTM -03:00)
+ Version 0.0.3 by Nexus on 01-08-2015 11:27 PM (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 2)
+PLUGIN.Version = V(0, 0, 3)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId  = 760
@@ -586,4 +586,13 @@ function PLUGIN:OnRunCommand(arg)
           end
       end
     end
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:SendHelpText( player )
+-- -----------------------------------------------------------------------------------
+-- HelpText plugin support for the command /help.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:SendHelpText(player)
+      self:SendMessage(player, self.Config.Messages.WarpHelp)
 end
