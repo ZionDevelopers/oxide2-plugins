@@ -24,7 +24,7 @@ PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
 PLUGIN.Version = V(0, 0, 3)
 PLUGIN.Author = "Nexus"
-PLUGIN.ResourceId  = 756
+PLUGIN.ResourceId = 756
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:CanOpenDoor()

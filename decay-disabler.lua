@@ -17,14 +17,20 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.1 by Nexus on 01-08-2015 09:55 PM (GTM -03:00)
+ Version 0.0.2 by Nexus on 01-08-2015 10:03 PM (GTM -03:00)
 ]]
 
 PLUGIN.Title = "Decay disabler"
 PLUGIN.Description = "Disable decay of buildings"
-PLUGIN.Version = V(0, 0, 1)
+PLUGIN.Version = V(0, 0, 2)
 PLUGIN.Author = "Nexus"
+PLUGIN.ResourceId = 761
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:OnStructureDecay(structure)
+-- -----------------------------------------------------------------------------------
+-- When a building trigger decay
+-- -----------------------------------------------------------------------------------
 function PLUGIN:OnStructureDecay(structure)
     return true
 end
