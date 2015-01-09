@@ -18,7 +18,7 @@
  
  $Id$
  Version 0.0.3 by Nexus on 01-08-2015 11:27 PM (GTM -03:00)
-]]
+]]--
 
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
