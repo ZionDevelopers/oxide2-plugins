@@ -17,12 +17,12 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.3 by Nexus on 01-08-2015 11:27 PM (GTM -03:00)
+ Version 0.0.4 by Nexus on 01-09-2015 10:14 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 3)
+PLUGIN.Version = V(0, 0, 4)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId  = 760
@@ -40,7 +40,7 @@ local MessageClient = UnityEngine.NetworkNetworkable._type:GetMethod( "MessageCl
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
     self:LoadSavedData()
-    command.AddChatCommand( "warp",   self.Object, "cmdWarp" )
+    command.AddChatCommand( "warp", self.Object, "cmdWarp" )
 end
 
 -- -----------------------------------------------------------------------------------
@@ -112,11 +112,22 @@ function PLUGIN:LoadDefaultConfig ()
             "/warp back - Teleport you back to the location that you was before warp.",
             "/warp list - List all saved warps."
         },
-
-        WarpSettings = {
-          "Warp System as the current settings enabled: ",
-          "Time between goto warps: {cooldown}",
-          "Daily limit of goto warps: {limit}"
+        
+        WarpHelpAdmin = {
+            "As an admin you have access to the following commands:",
+            "/warp add <name> - Create a new warp at your current location.",
+            "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
+            "/warp del <name> - Delete a warp.",
+            "/warp go <name> - Goto a warp.",
+            "/warp back - Teleport you back to the location that you was before warp.",
+            "/warp list - List all saved warps."
+        },
+        
+        WarpHelpUser = {
+            "As an user you have access to the following commands:",
+            "/warp go <name> - Goto a warp.",
+            "/warp back - Teleport you back to the location that you was before warp.",
+            "/warp list - List all saved warps."
         },
 
         -- Error Messages:
@@ -442,7 +453,6 @@ function PLUGIN:Count( tbl )
     return count
 end
 
-
 -- -----------------------------------------------------------------------------
 -- PLUGIN:Teleport( player, destination )
 -- -----------------------------------------------------------------------------
@@ -454,12 +464,13 @@ function PLUGIN:Teleport( player, destination )
     
     -- Generate values for the pre-teleportation location if these do not exist.
     if #TeleportVectors == 0 then
+        local boundary = global.TerrainMeta.get_Size().x / 2
         local coordsArray = util.TableToArray( { 0, 0, 0 } )
         local tempValues = { 
-            { x = 2000, y = 0, z = 2000 },
-            { x = 2000, y = 0, z = -2000 },
-            { x = -2000, y = 0, z = -2000 },
-            { x = -2000, y = 0, z = 2000 }
+            { x = boundary,  y = 0, z = boundary },
+            { x = boundary,  y = 0, z = -boundary },
+            { x = -boundary, y = 0, z = -boundary },
+            { x = -boundary, y = 0, z = boundary }
         }
 
         for k, v in pairs( tempValues ) do
@@ -482,9 +493,13 @@ function PLUGIN:Teleport( player, destination )
     -- Without the pre-teleport the teleport behavior on short range teleports
     -- is unreliable. Sometimes it would work, sometimes it wouldn't. Because
     -- of this we will first teleport the player to a further away position.
-    player.transform.position = preTeleportLocation
-    player:UpdateNetworkGroup()
-    player:UpdatePlayerCollider(true, false)
+    -- THIS MIGHT NO LONGER BE REQUIRED SINCE SERVERUPDATE 20150109,
+    -- NEXT 3 LINES CAN BE REMOVED AFTER FURTHER TESTING, IF TELEPORT BEHAVIOUR
+    -- SEEMS RATHER UNRELIABLE ON SHORT RANGE TELEPORTS THESE LINES SHOULD BE 
+    -- UNCOMMENTED AGAIN.
+    --player.transform.position = preTeleportLocation
+    --player:UpdateNetworkGroup()
+    --player:UpdatePlayerCollider(true, false)
 
     -- Add a little bit of height to the destination.
     destination.y = destination.y + 0.2
@@ -505,11 +520,11 @@ function PLUGIN:Teleport( player, destination )
     player:SendFullSnapshot()
 
     -- Send the client an RPC Message as it is done in BasePlayer.Respawn()
-    local RPCMessage    = new( ProtoBuf.RPCMessage._type, nil )
-    RPCMessage.funcName = global.StringPool.Get.methodarray[1]:Invoke( nil, util.TableToArray( { "startloading" } ) )
-    RPCMessage.data     = nil
+    local Data    = new( global.NetworkData._type, nil )
+    Data:WriteUInt( global.StringPool.Get.methodarray[1]:Invoke( nil, util.TableToArray( { "startloading" } ) ) )
+    Data:WriteUInt64( player.net.connection.ownerid )
 
-    MessageClient:Invoke( nil , util.TableToArray( { player.net, player.net.connection, UnityEngine.MSG.RPC_MESSAGE, RPCMessage:ToProtoBytes() } ) )
+    MessageClient:Invoke( nil , util.TableToArray( { player.net, player.net.connection, UnityEngine.MSG.RPC_MESSAGE, Data:ToBytes() } ) )
 
     -- Send a networkupdate.
     player:SendNetworkUpdateImmediate()
@@ -594,5 +609,9 @@ end
 -- HelpText plugin support for the command /help.
 -- -----------------------------------------------------------------------------------
 function PLUGIN:SendHelpText(player)
-      self:SendMessage(player, self.Config.Messages.WarpHelp)
+    if self:IsAllowed( player ) then
+        self:SendMessage(player, self.Config.Messages.WarpHelpAdmin)
+    else
+        self:SendMessage(player, self.Config.Messages.WarpHelpUser)
+    end
 end
