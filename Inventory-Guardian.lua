@@ -44,6 +44,7 @@ function PLUGIN:Init ()
     command.AddChatCommand( "saveinv", self.Object, "SavePlayerInventory" )
     command.AddChatCommand( "restoreinv", self.Object, "RestorePlayerInventory" )
     command.AddChatCommand( "restoreupondeath", self.Object, "RestoreUponDeath" )
+    command.AddChatCommand( "delsavedinv", self.Object, "DeleteSavedInventory" )
     -- Load default saved data
     self:LoadSavedData()
 end
@@ -70,6 +71,9 @@ function PLUGIN:LoadDefaultConfig ()
         Restored = "Your inventory has been restored!",
         RestoreUponDeathEnabled = "Restore Upon Death Enabled!",
         RestoreUponDeathDisabled = "Restore Upon Death Disabled!",
+        RestoreEmpty = "You don't have any saved inventory, so cannot be restored!",
+        DeletedInv = 'Your saved inventory was deleted!',
+        
         HelpUser = {
             "/saveinv - Save your inventory for later restoration!",
             "/restoreinv - Restore your saved inventory!"            
@@ -107,6 +111,35 @@ function PLUGIN:SaveData()
 end
 
 -- -----------------------------------------------------------------------------------
+-- PLUGIN:ClearSavedInventory(playerID)
+-- -----------------------------------------------------------------------------------
+-- Clear player's saved inventory on Data Table
+-- -----------------------------------------------------------------------------------
+function PLUGIN:ClearSavedInventory(playerID)
+    -- Reset inventory
+    InventoryData.GlobalInventory [playerID] = {} 
+    InventoryData.GlobalInventory [playerID]['belt'] = {}
+    InventoryData.GlobalInventory [playerID]['main'] = {}
+    InventoryData.GlobalInventory [playerID]['wear'] = {}
+    -- Save Inventory
+    self:SaveData()
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:ClearSavedInventory(player
+-- -----------------------------------------------------------------------------------
+-- Clear player's saved inventory
+-- -----------------------------------------------------------------------------------
+function PLUGIN:DeleteSavedInventory(player)
+    -- Grab the player his/her SteamID.
+    local playerID = rust.UserIDFromPlayer( player )  
+    -- Clear Saved inventory
+    self:ClearSavedInventory(playerID)
+    -- Send message to user
+    self:SendMessage(player, self.Config.Messages.DeletedInv)      
+end
+
+-- -----------------------------------------------------------------------------------
 -- PLUGIN:SavePlayerInventory ()
 -- -----------------------------------------------------------------------------------
 -- Save player inventory
@@ -129,11 +162,8 @@ function PLUGIN:SavePlayerInventory (player)
     local mainCount = 0
     local wearCount = 0
     
-    -- Reset inventory
-    InventoryData.GlobalInventory [playerID] = {} 
-    InventoryData.GlobalInventory [playerID]['belt'] = {}
-    InventoryData.GlobalInventory [playerID]['main'] = {}
-    InventoryData.GlobalInventory [playerID]['wear'] = {}
+    -- Reset saved inventory
+    self:ClearSavedInventory(playerID)
     
     -- Loop by the Belt Items
     while beltItems:MoveNext() do
@@ -167,6 +197,15 @@ function PLUGIN:SavePlayerInventory (player)
 end
 
 -- -----------------------------------------------------------------------------------
+-- PLUGIN:SavedInventoryIsEmpty ( playerID )
+-- -----------------------------------------------------------------------------------
+-- Check if player's saved inventory is empty
+-- -----------------------------------------------------------------------------------
+function PLUGIN:SavedInventoryIsEmpty (playerID)
+    return self:Count(InventoryData.GlobalInventory [playerID] ['belt']) == 0 and self:Count(InventoryData.GlobalInventory [playerID] ['main']) == 0 and self:Count(InventoryData.GlobalInventory [playerID] ['wear']) == 0
+end
+
+-- -----------------------------------------------------------------------------------
 -- PLUGIN:RestorePlayerInventory ()
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
@@ -175,35 +214,41 @@ function PLUGIN:RestorePlayerInventory ( player )
     -- Grab the player his/her SteamID.
     local playerID = rust.UserIDFromPlayer( player )
     
-    -- Get Player inventory list
-    local belt = player.inventory.containerBelt
-    local main = player.inventory.containerMain
-    local wear = player.inventory.containerWear
-    local Inventory = {}
-    
-    -- Set inventory
-    Inventory ['belt'] = belt
-    Inventory ['main'] = main
-    Inventory ['wear'] = wear
-    
-    -- Clear player Inventory
-    player.inventory:Strip()
-    
-    -- Loop by player's saved inventory slots
-    for slot, items in pairs( InventoryData.GlobalInventory [playerID] ) do
-        --Loop by slots
-        for i, item in pairs( items ) do
-
-          -- Create an inventory item
-          local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
-          
-          -- Set that created inventory item to player
-          player.inventory:GiveItem(itemEntity, Inventory [slot])
-        end
-     end
-     
-    -- Send message to user
-    self:SendMessage(player, self.Config.Messages.Restored)
+    -- Check if saved inventory is empty
+    if self:SavedInventoryIsEmpty (playerID) then
+        -- Send message
+        self:SendMessage(player, self.Config.Messages.RestoreEmpty)
+    else
+      -- Get Player inventory list
+      local belt = player.inventory.containerBelt
+      local main = player.inventory.containerMain
+      local wear = player.inventory.containerWear
+      local Inventory = {}
+      
+      -- Set inventory
+      Inventory ['belt'] = belt
+      Inventory ['main'] = main
+      Inventory ['wear'] = wear
+      
+      -- Clear player Inventory
+      player.inventory:Strip()
+      
+      -- Loop by player's saved inventory slots
+      for slot, items in pairs( InventoryData.GlobalInventory [playerID] ) do
+          --Loop by slots
+          for i, item in pairs( items ) do
+  
+            -- Create an inventory item
+            local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
+            
+            -- Set that created inventory item to player
+            player.inventory:GiveItem(itemEntity, Inventory [slot])
+          end
+       end
+       
+      -- Send message to user
+      self:SendMessage(player, self.Config.Messages.Restored)
+    end
 end
 
 -- -----------------------------------------------------------------------------
@@ -297,6 +342,9 @@ function PLUGIN:OnEntityDeath(entity)
         if self.Config.Settings.RestoreUponDeath then
             -- Save player inventory
             self:SavePlayerInventory(player) 
+        else    
+          -- Reset saved inventory
+          self:ClearSavedInventory(playerID)
         end
     end 
 end
@@ -312,8 +360,11 @@ function PLUGIN:OnPlayerSpawn(player)
     
     -- Check if the Restore upon death is enabled and if player just died or If player never died = First spawn
     if (self.Config.Settings.RestoreUponDeath and PlayerDeaths[playerID] == true) or PlayerDeaths[playerID] == nil then
-        -- Restore player inventory
-        self:RestorePlayerInventory ( player )  
+        -- Check if saved inventory is empty
+        if not self:SavedInventoryIsEmpty (playerID) then 
+            -- Restore player inventory
+            self:RestorePlayerInventory ( player )  
+        end
     end
     
     -- Remove PlayerID from player deaths list
@@ -333,12 +384,12 @@ function PLUGIN:RestoreUponDeath (player)
             -- Disable Restore Upon Death
             self.Config.Settings.RestoreUponDeath = false
             -- Send Message to Player
-            self:SendMessage(self.Config.Settings.Messages.RestoreUponDeathDisabled)
+            self:SendMessage(player, self.Config.Messages.RestoreUponDeathDisabled)
         else
             -- Enable Restore Upon Death
             self.Config.Settings.RestoreUponDeath = true
             -- Send Message to Player
-            self:SendMessage(self.Config.Settings.Messages.RestoreUponDeathEnabled)
+            self:SendMessage(player, self.Config.Messages.RestoreUponDeathEnabled)
         end
         
         -- Save the config.
