@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.1 by Nexus on 01-12-2015 05:34 PM (GTM -03:00)
+ Version 0.0.2 by Nexus on 01-12-2015 05:36 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 0, 1)
+PLUGIN.Version = V(0, 0, 2)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 
@@ -41,8 +41,9 @@ local PlayerDeaths = {}
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
     -- Add chat commands
-    command.AddChatCommand( "save_inventory", self.Object, "SavePlayerInventory" )
-    command.AddChatCommand( "restore_inventory", self.Object, "RestorePlayerInventory" )
+    command.AddChatCommand( "saveinv", self.Object, "SavePlayerInventory" )
+    command.AddChatCommand( "restoreinv", self.Object, "RestorePlayerInventory" )
+    command.AddChatCommand( "restoreupondeath", self.Object, "RestoreUponDeath" )
     -- Load default saved data
     self:LoadSavedData()
 end
@@ -60,13 +61,24 @@ function PLUGIN:LoadDefaultConfig ()
     self.Config.Settings = {
         ChatName = "Inventory Guardian",
         ConfigVersion = "0.0.0",
-        RestoreUponDeath = true
+        RestoreUponDeath = false
     }
    
     -- Plugin Messages:
     self.Config.Messages = {
         Saved = "Your inventory was been saved!",
-        Restored = "Your inventory has been restored!"        
+        Restored = "Your inventory has been restored!",
+        RestoreUponDeathEnabled = "Restore Upon Death Enabled!",
+        RestoreUponDeathDisabled = "Restore Upon Death Disabled!",
+        HelpUser = {
+            "/saveinv - Save your inventory for later restoration!",
+            "/restoreinv - Restore your saved inventory!"            
+        },
+        HelpAdmin = {            
+            "/saveinv - Save your inventory for later restoration!",
+            "/restoreinv - Restore your saved inventory!",
+            "/restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!"
+        }        
     }
     
 end
@@ -306,4 +318,46 @@ function PLUGIN:OnPlayerSpawn(player)
     
     -- Remove PlayerID from player deaths list
     PlayerDeaths[playerID] = nil
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:RestoreUponDeath (player)
+-- -----------------------------------------------------------------------------------
+-- Toogle the config restore upon death
+-- -----------------------------------------------------------------------------------
+function PLUGIN:RestoreUponDeath (player)
+    -- Check if player is admin
+    if player:GetComponent("BaseNetworkable").net.connection.authLevel == 2 then
+        -- Check if Restore Upon Death is enabled
+        if self.Config.Settings.RestoreUponDeath then
+            -- Disable Restore Upon Death
+            self.Config.Settings.RestoreUponDeath = false
+            -- Send Message to Player
+            self:SendMessage(self.Config.Settings.Messages.RestoreUponDeathDisabled)
+        else
+            -- Enable Restore Upon Death
+            self.Config.Settings.RestoreUponDeath = true
+            -- Send Message to Player
+            self:SendMessage(self.Config.Settings.Messages.RestoreUponDeathEnabled)
+        end
+        
+        -- Save the config.
+        self:SaveConfig()
+    end
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:SendHelpText( player )
+-- -----------------------------------------------------------------------------------
+-- HelpText plugin support for the command /help.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:SendHelpText(player)
+    -- Check if user is admin
+    if player:GetComponent("BaseNetworkable").net.connection.authLevel == 2 then
+        -- Send message to player
+        self:SendMessage(player, self.Config.Messages.HelpAdmin)
+    else
+        -- Send message to player
+        self:SendMessage(player, self.Config.Messages.HelpUser)
+    end
 end
