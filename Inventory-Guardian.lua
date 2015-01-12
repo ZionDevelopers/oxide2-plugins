@@ -76,12 +76,14 @@ function PLUGIN:LoadDefaultConfig ()
         
         HelpUser = {
             "/saveinv - Save your inventory for later restoration!",
-            "/restoreinv - Restore your saved inventory!"            
+            "/restoreinv - Restore your saved inventory!",
+            "/delsavedinv - Delete your saved inventory!"            
         },
         HelpAdmin = {            
             "/saveinv - Save your inventory for later restoration!",
             "/restoreinv - Restore your saved inventory!",
-            "/restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!"
+            "/restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!",
+            "/delsavedinv - Delete your saved inventory!"
         }        
     }
     
