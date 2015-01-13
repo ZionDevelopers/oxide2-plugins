@@ -119,7 +119,7 @@ function PLUGIN:LoadDefaultConfig ()
             "/restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!",
             "/delsavedinv - Delete your saved inventory!",
             "/toggleig - Toggle (Enable/Disable) Inventory Guardian!",
-            "/restoreonce - Toggle(Enable/Disable) Once Restoration.",
+            "/restoreonce - Toggle (Enable/Disable) Once Restoration.",
             "/igauthlevel <n/s> - Change Inventory Guardian required Auth Level."
         }        
     }
