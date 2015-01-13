@@ -54,7 +54,7 @@ function PLUGIN:Init ()
     -- Add console commands
     command.AddConsoleCommand( "ig.authlevel", self.Object, "ccmdChangeAuthLevel" )
     command.AddConsoleCommand( "ig.toggle", self.Object, "ccmdToggleInventoryGuardian" )
-    command.AddConsoleCommand( "ig.restoreupondeath", self.Object, "ccmdRestoreUponDeath" )
+    command.AddConsoleCommand( "ig.restoreupondeath", self.Object, "ccmdToggleRestoreUponDeath" )
     command.AddConsoleCommand( "ig.restoreonce", self.Object, "ccmdToggleRestoreOnce" )
     -- Load default saved data
     self:LoadSavedData()
@@ -67,7 +67,7 @@ end
 -- -----------------------------------------------------------------------------------
 -- It check if the config version is outdated
 -- -----------------------------------------------------------------------------------
-function PLUGIN:UpdateConfg()
+function PLUGIN:UpdateConfig()
     -- Check if the current config version differs from the saved
     if self.Config.Settings.ConfigVersion ~= ConfigVersion then
         -- Load the default
@@ -315,14 +315,13 @@ function PLUGIN:SendMessage( player, message )
         for i, message in pairs( message ) do
             self:SendMessage( player, message )
         end
-    else    
-        -- "Build" the message to be able to show it correctly.
-        message = UnityEngine.StringExtensions.QuoteSafe( message )
-        
+    else
         -- Check if we have an existing target to send the message to.
         if player then
             -- Check if player is connected
             if player:IsConnected() then
+                -- "Build" the message to be able to show it correctly.
+                message = UnityEngine.StringExtensions.QuoteSafe( message )
                 -- Send the message to the targetted player.
                 player:SendConsoleCommand( "chat.add \"" .. self.Config.Settings.ChatName .. "\""  .. message )
             end
