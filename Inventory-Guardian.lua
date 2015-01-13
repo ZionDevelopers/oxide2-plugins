@@ -44,10 +44,10 @@ local ConfigVersion = "0.0.1"
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
     -- Add chat commands
-    command.AddChatCommand( "saveinv", self.Object, "cmdSavePlayerInventory" )
-    command.AddChatCommand( "restoreinv", self.Object, "cmdRestorePlayerInventory" )
-    command.AddChatCommand( "restoreupondeath", self.Object, "cmdRestoreUponDeath" )
-    command.AddChatCommand( "delsavedinv", self.Object, "cmdDeleteSavedInventory" )
+    command.AddChatCommand( "saveinv", self.Object, "cmdSaveInventory" )
+    command.AddChatCommand( "restoreinv", self.Object, "cmdRestoreInventory" )
+    command.AddChatCommand( "restoreupondeath", self.Object, "cmdToggleRestoreUponDeath" )
+    command.AddChatCommand( "delsavedinv", self.Object, "cmdDeleteInventory" )
     command.AddChatCommand( "toggleig", self.Object, "cmdToggleInventoryGuardian" )
     command.AddChatCommand( "restoreonce", self.Object, "cmdToggleRestoreOnce" )
     command.AddChatCommand( "igauthlevel", self.Object, "cmdChangeAuthLevel" )
@@ -584,10 +584,16 @@ function PLUGIN:Check (player)
     if not self.Config.Settings.Enabled then        
         -- Send message to player
         self:SendMessage(player, self.Config.Messages.CantDoDisabled)
+        
+        return false
     -- Check if player is allowed and Inventory Guardian is enabled
-    elseif not self:Allowed( player ) then    
+    elseif not self:IsAllowed( player ) then    
         -- Send message to player
         self:SendMessage(player, self:Parse(self.Config.Messages.NotAllowed, {required = tostring(self.Config.Settings.RequiredAuthLevel)}))
+        
+        return false
+    else
+        return true
     end
 end
 
@@ -637,7 +643,7 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:cmdToggleInventoryGuardian ( player )
     -- Check if Inventory Guardian is enabled and If player is allowed
-    if self:Allowed( player ) then
+    if self:IsAllowed( player ) then
         -- Restore Player inventory
         self:ToggleInventoryGuardian (player)
     else
