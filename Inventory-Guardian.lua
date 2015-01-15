@@ -849,8 +849,12 @@ function PLUGIN:cmdSaveInventory ( player, _, args )
         
         -- Save Player Inventory
         self:SavePlayerInventory (player)
-        -- Send message to Oplayer
-        self:SendMessage(oPlayer, self:Parse(self.Config.Messages.SavedPlayerInventory, {player = player.displayName}))
+        
+         -- Check if oPlayer is the same then player
+        if player ~= oPlayer then
+            -- Send message to Oplayer
+            self:SendMessage(oPlayer, self:Parse(self.Config.Messages.SavedPlayerInventory, {player = player.displayName}))
+        end
     end
 end
 
@@ -921,8 +925,12 @@ function PLUGIN:cmdDeleteInventory ( player, _, args )
         
         -- Restore player Inventory
         self:DeletePlayerSavedInventory (player)
-        -- Send message to oPlayer
-        self:SendMessage(oPlayer, self:Parse(self.Config.Messages.DeletedPlayerInventory, {player = player.displayName}))
+        
+         -- Check if oPlayer is the same then player
+        if player ~= oPlayer then
+            -- Send message to oPlayer
+            self:SendMessage(oPlayer, self:Parse(self.Config.Messages.DeletedPlayerInventory, {player = player.displayName}))
+        end
     end
 end
 
