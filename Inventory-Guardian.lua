@@ -289,46 +289,39 @@ end
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:RestoreInventory (player)
-    -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
-    -- Get Player inventory list
-    local belt = player.inventory.containerBelt
-    local main = player.inventory.containerMain
-    local wear = player.inventory.containerWear
-    local Inventory = {}
-    
-    -- Set inventory
-    Inventory ['belt'] = belt
-    Inventory ['main'] = main
-    Inventory ['wear'] = wear
-    
+function PLUGIN:RestoreInventory (player)       
+        
     -- Clear player Inventory
     player.inventory:Strip()
     
-    -- Loop by player's saved inventory slots
-    for slot, items in pairs( InventoryData.GlobalInventory [playerID] ) do
-        --Loop by slots
-        for i, item in pairs( items ) do
-
-          -- Create an inventory item
-          local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
-          
-          -- Set that created inventory item to player
-          player.inventory:GiveItem(itemEntity, Inventory [slot])
-        end
-     end
-     
-    -- Check if player is connected
-    if player:IsConnected() then
-        -- Tries to fix not restoring fully the player inventory
-        -- Set the player flag to receiving snapshots and update the player.
-        player:SetPlayerFlag( global.PlayerFlags.ReceivingSnapshot, true )          
-        -- Send the server snapshot to the player.
-        player:SendFullSnapshot()
-        -- Send a networkupdate.
-        player:SendNetworkUpdateImmediate()
-    end
+    -- This fixes the incomplete restoration process
+    timer.Once (1, function ()     
+        -- Grab the player his/her SteamID.
+        local playerID = rust.UserIDFromPlayer( player )
+        -- Get Player inventory list
+        local belt = player.inventory.containerBelt
+        local main = player.inventory.containerMain
+        local wear = player.inventory.containerWear
+        local Inventory = {}
+        
+        -- Set inventory
+        Inventory ['belt'] = belt
+        Inventory ['main'] = main
+        Inventory ['wear'] = wear
+        
+        -- Loop by player's saved inventory slots
+        for slot, items in pairs( InventoryData.GlobalInventory [playerID] ) do
+            --Loop by slots
+            for i, item in pairs( items ) do
+    
+              -- Create an inventory item
+              local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
+              
+              -- Set that created inventory item to player
+              player.inventory:GiveItem(itemEntity, Inventory [slot])
+            end
+         end
+    end)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -890,8 +883,12 @@ function PLUGIN:cmdRestoreInventory ( player, _, args )
         
         -- Restore player Inventory
         self:RestorePlayerInventory (player)
-        -- Send message to oPlayer
-        self:SendMessage(oPlayer, self:Parse(self.Config.Messages.RestoredPlayerInventory, {player = player.displayName}))
+        
+        -- Check if oPlayer is the same then player
+        if player ~= oPlayer then
+            -- Send message to oPlayer
+            self:SendMessage(oPlayer, self:Parse(self.Config.Messages.RestoredPlayerInventory, {player = player.displayName}))
+        end
     end
 end
 
