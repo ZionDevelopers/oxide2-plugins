@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.5 by Nexus on 01-16-2015 07:22 AM (GTM -03:00)
+ Version 0.0.6 by Nexus on 01-16-2015 07:52 AM (GTM -03:00)
 ]]
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 5)
+PLUGIN.Version = V(0, 0, 6)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
@@ -329,6 +329,9 @@ function PLUGIN:ccmdChangeAuthLevel( arg )
     if arg.Args.Length == 1 then
         -- Change required Auth level
         self:ChangeAuthLevel(nil, arg.Args[0])
+    elseif arg.Args.Length == 0 then
+        -- Send message to player
+        self:SendMessage(player, self.Config.Messages.InvalidAuthLevel)
     end
 end
 
