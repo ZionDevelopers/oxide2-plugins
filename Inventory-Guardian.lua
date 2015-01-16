@@ -173,16 +173,13 @@ end
 -- Clear player's saved inventory on Data Table
 -- -----------------------------------------------------------------------------------
 function PLUGIN:ClearSavedInventory(playerID)
-    -- Check if Inventory Guardian is enabled
-    if self.Config.Settings.Enabled then
-        -- Reset inventory
-        InventoryData.GlobalInventory [playerID] = {} 
-        InventoryData.GlobalInventory [playerID]['belt'] = {}
-        InventoryData.GlobalInventory [playerID]['main'] = {}
-        InventoryData.GlobalInventory [playerID]['wear'] = {}
-        -- Save Inventory
-        self:SaveData()
-    end
+    -- Reset inventory
+    InventoryData.GlobalInventory [playerID] = {} 
+    InventoryData.GlobalInventory [playerID]['belt'] = {}
+    InventoryData.GlobalInventory [playerID]['main'] = {}
+    InventoryData.GlobalInventory [playerID]['wear'] = {}
+    -- Save Inventory
+    self:SaveData()
 end
 
 -- -----------------------------------------------------------------------------------
