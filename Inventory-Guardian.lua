@@ -17,185 +17,139 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.6 by Nexus on 01-15-2015 02:14 PM (GTM -03:00)
+ Version 0.0.8 by Nexus on 01-18-2015 12:14 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 0, 6)
+PLUGIN.Version = V(0, 0, 8)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
 
+-- Define Inventory Guardian class
+local IG = {}
+local ox = nil
+
 -- Define Inventory Data
-local InventoryData = {}
+IG.Data = {}
 
 -- Define Player deaths table
-local PlayerDeaths = {}
+IG.PlayerDeaths = {}
+IG.SaveProtocol = 0
 
 -- Define Config version
-local ConfigVersion = "0.0.2"
+IG.ConfigVersion = "0.0.3"
+
+-- Define Local config Tables/Strings/Info 
+IG.Settings = {
+    ChatName = "Inventory Guardian",
+    Enabled = true,
+    RequiredAuthLevel = 2,
+    ConfigVersion = "0.0.3",
+    RestoreUponDeath = false,
+    AutoRestore = true
+}    
+   
+-- Plugin Messages:
+IG.Messages = {
+    Saved = "Your inventory was been saved!",
+    Restored = "Your inventory has been restored!",
+    RestoreUponDeathEnabled = "Restore Upon Death Enabled!",
+    RestoreUponDeathDisabled = "Restore Upon Death Disabled!",
+    RestoreEmpty = "You don't have any saved inventory, so cannot be restored!",
+    DeletedInv = "Your saved inventory was deleted!",
+    Enabled = "Inventory Guardian has been Enabled!",
+    Disabled = "Inventory Guardian has been Disabled!",
+    AutoRestoreDisabled = "Automatic Restoration has been disabled!",
+    AutoRestoreEnabled = "Automatic Restoration has been enabled!",
+    AuthLevelChanged = "You changed the required Auth Level to %s!",
+    CantDoDisabled = "We are unable to run that command since the Inventory Guardian is disabled!",
+    NotAllowed = "You cannot use that command because you don't have the required Auth Level %s!",
+    InvalidAuthLevel = "You need pass a valid auth level like: admin, owner, mod, moderator, 1 or 2!",
+    RestoredPlayerInventory = "Player \"%s\" inventory has been restored!",
+    RestoreInit = "Initiating all players inventories restoration...",
+    RestoreAll = "All players inventories has been restored!",
+    SavedPlayerInventory = "Player \"%s\" inventory has been saved!",
+    SaveInit = "Initiating all players inventories salvation...",
+    SaveAll = "All players inventories has been saved!",
+    PlayerNotFound = "The specified player couldn't be found please try again!",
+    MultiplePlayersFound = "Found multiple players with that name!",
+    DeletedPlayerInventory = "Player \"%s\" inventory has been deleted!",
+    DeleteAll = "All players inventories has been deleted!",
+    DeleteInit = "Initiating all players inventories deletion...",
+    DeleteAll = "All players inventories has been deleted!",
+     
+    Help = {            
+      "/ig.save - Save your inventory for later restoration!",
+      "/ig.restore - Restore your saved inventory!",            
+      "/ig.delsaved - Delete your saved inventory!",
+      "/ig.save <name> - Save player's inventory for later restoration!",
+      "/ig.restore <name> - Restore player's saved inventory!",            
+      "/ig.delsaved <name> - Delete player's saved inventory!",
+      "/ig.restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!",
+      "/ig.toggle - Toggle (Enable/Disable) Inventory Guardian!",
+      "/ig.autorestore - Toggle (Enable/Disable) Automatic Restoration.",
+      "/ig.authlevel <n/s> - Change Inventory Guardian required Auth Level."
+    }   
+}
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:Init()
--- -----------------------------------------------------------------------------------
--- On plugin initialisation the required in-game chat commands are registered and data
--- from the DataTable file is loaded.
--- -----------------------------------------------------------------------------------
-function PLUGIN:Init ()
-    -- Add chat commands
-    command.AddChatCommand( "saveinv", self.Object, "cmdSaveInventory" )
-    command.AddChatCommand( "restoreinv", self.Object, "cmdRestoreInventory" )
-    command.AddChatCommand( "restoreupondeath", self.Object, "cmdToggleRestoreUponDeath" )
-    command.AddChatCommand( "delsavedinv", self.Object, "cmdDeleteInventory" )
-    command.AddChatCommand( "toggleig", self.Object, "cmdToggleInventoryGuardian" )
-    command.AddChatCommand( "restoreonce", self.Object, "cmdToggleRestoreOnce" )
-    command.AddChatCommand( "igauthlevel", self.Object, "cmdChangeAuthLevel" )
-    -- Add console commands
-    command.AddConsoleCommand( "ig.authlevel", self.Object, "ccmdChangeAuthLevel" )
-    command.AddConsoleCommand( "ig.toggle", self.Object, "ccmdToggleInventoryGuardian" )
-    command.AddConsoleCommand( "ig.restoreupondeath", self.Object, "ccmdToggleRestoreUponDeath" )
-    command.AddConsoleCommand( "ig.restoreonce", self.Object, "ccmdToggleRestoreOnce" )
-    command.AddConsoleCommand( "ig.restoreall", self.Object, "ccmdRestoreAll" )
-    command.AddConsoleCommand( "ig.saveall", self.Object, "ccmdSaveAll" )
-    command.AddConsoleCommand( "ig.deleteall", self.Object, "ccmdDeleteAll" )
-    -- Load default saved data
-    self:LoadSavedData()
-    -- Update config version
-    self:UpdateConfig()
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:UpdateConfig()
+-- IG.UpdateConfig()
 -- -----------------------------------------------------------------------------------
 -- It check if the config version is outdated
 -- -----------------------------------------------------------------------------------
-function PLUGIN:UpdateConfig()
+IG.UpdateConfig = function ()
     -- Check if the current config version differs from the saved
-    if self.Config.Settings.ConfigVersion ~= ConfigVersion then
+    if ox.Config.Settings.ConfigVersion ~= IG.ConfigVersion then
         -- Load the default
-        self:LoadDefaultConfig()
+        ox:LoadDefaultConfig()
         -- Save config
-        self:SaveConfig()
+        ox:SaveConfig()
     end
 end
 
--- -----------------------------------------------------------------------------------
--- PLUGIN:LoadDefaultConfig()
--- -----------------------------------------------------------------------------------
--- The plugin uses a configuration file to save certain settings and uses it for
--- localized messages that are send in-game to the players. When this file doesn't
--- exist a new one will be created with these default values.
--- -----------------------------------------------------------------------------------
-function PLUGIN:LoadDefaultConfig () 
- -- General Settings:
-    self.Config.Settings = {
-        ChatName = "Inventory Guardian",
-        Enabled = true,
-        RequiredAuthLevel = 2,
-        ConfigVersion = "0.0.2",
-        RestoreUponDeath = false,
-        RestoreOnce = true
-    }    
-   
-    -- Plugin Messages:
-    self.Config.Messages = {
-        Saved = "Your inventory was been saved!",
-        Restored = "Your inventory has been restored!",
-        RestoreUponDeathEnabled = "Restore Upon Death Enabled!",
-        RestoreUponDeathDisabled = "Restore Upon Death Disabled!",
-        RestoreEmpty = "You don't have any saved inventory, so cannot be restored!",
-        DeletedInv = "Your saved inventory was deleted!",
-        Enabled = "Inventory Guardian has been Enabled!",
-        Disabled = "Inventory Guardian has been Disabled!",
-        RestoreOnceDisabled = "Restore Once has been disabled!",
-        RestoreOnceEnabled = "Restore Once has been enabled!",
-        AuthLevelChanged = "You changed the required Auth Level to {required}!",
-        CantDoDisabled = "We are unable to run that command since the Inventory Guardian is disabled!",
-        NotAllowed = "You cannot use that command because you don't have the required Auth Level {required}!",
-        InvalidAuthLevel = "You need pass a valid auth level like: admin, owner, mod, moderator, 1 or 2!",
-        RestoredPlayerInventory = "Player \"{player}\" inventory has been restored!",
-        RestoreInit = "Initiating all players inventories restoration...",
-        RestoreAll = "All players inventories has been restored!",
-        SavedPlayerInventory = "Player \"{player}\" inventory has been saved!",
-        SaveInit = "Initiating all players inventories salvation...",
-        SaveAll = "All players inventories has been saved!",
-        PlayerNotFound = "The specified player couldn't be found please try again!",
-        MultiplePlayersFound = "Found multiple players with that name!",
-        DeletedPlayerInventory = "Player \"{player}\" inventory has been deleted!",
-        DeleteAll = "All players inventories has been deleted!",
-        DeleteInit = "Initiating all players inventories deletion...",
-        DeleteAll = "All players inventories has been deleted!",
-     
-        Help = {            
-            "/saveinv - Save your inventory for later restoration!",
-            "/restoreinv - Restore your saved inventory!",            
-            "/delsavedinv - Delete your saved inventory!",
-            "/saveinv <name> - Save player's inventory for later restoration!",
-            "/restoreinv <name> - Restore player's saved inventory!",            
-            "/delsavedinv <name> - Delete player's saved inventory!",
-            "/restoreupondeath - Toggles the Inventory restoration upon death for all players on the server!",
-            "/toggleig - Toggle (Enable/Disable) Inventory Guardian!",
-            "/restoreonce - Toggle (Enable/Disable) Once Restoration.",
-            "/igauthlevel <n/s> - Change Inventory Guardian required Auth Level."
-        }        
-    }
-    
-end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:LoadSavedData()
--- -----------------------------------------------------------------------------------
--- Load the DataTable file into a table or create a new table when the file doesn't
--- exist yet.
--- -----------------------------------------------------------------------------------
-function PLUGIN:LoadSavedData ()
-    InventoryData = datafile.GetDataTable( "Inventory-Guardian" )
-    InventoryData = InventoryData or {}
-    InventoryData.GlobalInventory = InventoryData.GlobalInventory or {}  
-    InventoryData.RestoreOnce = InventoryData.RestoreOnce or {}     
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:SaveData()
+-- IG.SaveData
 -- -----------------------------------------------------------------------------------
 -- Saves the table with all the warpdata to a DataTable file.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SaveData()  
+IG.SaveData = function ()  
     -- Save the DataTable
     datafile.SaveDataTable( "Inventory-Guardian" )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ClearSavedInventory(playerID)
+-- IG.ClearSavedInventory(playerID)
 -- -----------------------------------------------------------------------------------
 -- Clear player's saved inventory on Data Table
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ClearSavedInventory(playerID)
+IG.ClearSavedInventory = function (playerID)
     -- Reset inventory
-    InventoryData.GlobalInventory [playerID] = {} 
-    InventoryData.GlobalInventory [playerID]['belt'] = {}
-    InventoryData.GlobalInventory [playerID]['main'] = {}
-    InventoryData.GlobalInventory [playerID]['wear'] = {}
+    IG.Data.GlobalInventory [playerID] = {} 
+    IG.Data.GlobalInventory [playerID]['belt'] = {}
+    IG.Data.GlobalInventory [playerID]['main'] = {}
+    IG.Data.GlobalInventory [playerID]['wear'] = {}
     -- Save Inventory
-    self:SaveData()
+    IG.SaveData()
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:DeletePlayerSavedInventory(player)
+-- IG.DeletePlayerSavedInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Clear player's saved inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:DeletePlayerSavedInventory(player)
+IG.DeletePlayerSavedInventory = function (player)
     -- Check if Inventory Guardian is enabled
-    if self.Config.Settings.Enabled then
+    if ox.Config.Settings.Enabled then
         -- Grab the player his/her SteamID.
         local playerID = rust.UserIDFromPlayer( player )  
         -- Clear Saved inventory
-        self:ClearSavedInventory(playerID)
+        IG.ClearSavedInventory(playerID)
         -- Send message to user
-        self:SendMessage(player, self.Config.Messages.DeletedInv)  
+        IG.SendMessage(player, ox.Config.Messages.DeletedInv)  
     end    
 end
 
@@ -204,7 +158,7 @@ end
 -- -----------------------------------------------------------------------------------
 -- Save player inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SaveInventory(player)
+IG.SaveInventory = function (player)
     -- Grab the player his/her SteamID.
     local playerID = rust.UserIDFromPlayer( player )
     
@@ -223,12 +177,12 @@ function PLUGIN:SaveInventory(player)
     local wearCount = 0
     
     -- Reset saved inventory
-    self:ClearSavedInventory(playerID)
+    IG.ClearSavedInventory(playerID)
     
     -- Loop by the Belt Items
     while beltItems:MoveNext() do
       -- Save current item to player's inventory table
-      InventoryData.GlobalInventory [playerID] ['belt'] [tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount}    
+      IG.Data.GlobalInventory [playerID] ['belt'] [tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount}    
       -- Increment the count
       beltCount = beltCount + 1
     end
@@ -236,7 +190,7 @@ function PLUGIN:SaveInventory(player)
     -- Loop by the Main Items
     while mainItems:MoveNext() do
         -- Save current item to player's inventory table
-        InventoryData.GlobalInventory [playerID] ['main'] [tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount}
+        IG.Data.GlobalInventory [playerID] ['main'] [tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount}
         -- Increment the count
         mainCount = mainCount + 1
     end
@@ -244,13 +198,13 @@ function PLUGIN:SaveInventory(player)
     -- Loop by the Wear Items
     while wearItems:MoveNext() do
         -- Save current item to player's inventory table
-        InventoryData.GlobalInventory [playerID] ['wear'] [tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount}    
+        IG.Data.GlobalInventory [playerID] ['wear'] [tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount}    
         -- Increment the count
         wearCount = wearCount + 1
     end
     
     -- Save inventory data
-    self:SaveData()
+    IG.SaveData()
 end
 
 -- -----------------------------------------------------------------------------------
@@ -258,13 +212,13 @@ end
 -- -----------------------------------------------------------------------------------
 -- Save player inventory and send message
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SavePlayerInventory (player)  
+IG.SavePlayerInventory = function (player)  
     -- Check if Inventory Guardian is enabled
-    if self.Config.Settings.Enabled then 
+    if ox.Config.Settings.Enabled then 
         -- Save player inventory
-        self:SaveInventory(player) 
+        IG.SaveInventory(player) 
         -- Send message to user
-        self:SendMessage(player, self.Config.Messages.Saved)
+        IG.SendMessage(player, ox.Config.Messages.Saved)
     end
 end
 
@@ -273,11 +227,11 @@ end
 -- -----------------------------------------------------------------------------------
 -- Check if player's saved inventory is empty
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SavedInventoryIsEmpty (playerID)
-    if InventoryData.GlobalInventory [playerID] == nil then
+IG.SavedInventoryIsEmpty = function (playerID)
+    if IG.Data.GlobalInventory [playerID] == nil then
         return true
     else
-        return self:Count(InventoryData.GlobalInventory [playerID] ['belt']) == 0 and self:Count(InventoryData.GlobalInventory [playerID] ['main']) == 0 and self:Count(InventoryData.GlobalInventory [playerID] ['wear']) == 0
+        return #IG.Data.GlobalInventory [playerID] ['belt'] == 0 and #IG.Data.GlobalInventory [playerID] ['main'] == 0 and #IG.Data.GlobalInventory [playerID] ['wear'] == 0
     end
 end
 
@@ -286,7 +240,7 @@ end
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:RestoreInventory (player)       
+IG.RestoreInventory = function (player)       
         
     -- Clear player Inventory
     player.inventory:Strip()
@@ -307,7 +261,7 @@ function PLUGIN:RestoreInventory (player)
         Inventory ['wear'] = wear
         
         -- Loop by player's saved inventory slots
-        for slot, items in pairs( InventoryData.GlobalInventory [playerID] ) do
+        for slot, items in pairs( IG.Data.GlobalInventory [playerID] ) do
             --Loop by slots
             for i, item in pairs( items ) do
     
@@ -326,22 +280,22 @@ end
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:RestorePlayerInventory ( player )  
+IG.RestorePlayerInventory = function ( player )  
     -- Check if Inventory Guardian is enabled
-    if self.Config.Settings.Enabled then  
+    if ox.Config.Settings.Enabled then  
         -- Grab the player his/her SteamID.
         local playerID = rust.UserIDFromPlayer( player )
         
         -- Check if saved inventory is empty
-        if self:SavedInventoryIsEmpty (playerID) then
+        if IG.SavedInventoryIsEmpty (playerID) then
             -- Send message
-            self:SendMessage(player, self.Config.Messages.RestoreEmpty)
+            IG.SendMessage(player, ox.Config.Messages.RestoreEmpty)
         else
           
           -- Restore Inventory
-          self:RestoreInventory(player)
+          IG.RestoreInventory(player)
           -- Send message to user
-          self:SendMessage(player, self.Config.Messages.Restored)
+          IG.SendMessage(player, ox.Config.Messages.Restored)
         end
     end
 end
@@ -351,12 +305,12 @@ end
 -- -----------------------------------------------------------------------------
 -- Sends a chatmessage to a player.
 -- -----------------------------------------------------------------------------
-function PLUGIN:SendMessage( player, message )
+IG.SendMessage = function ( player, message )
     -- Check if the message is a table with multiple messages.
     if type( message ) == "table" then
         -- Loop by table of messages and send them one by one
         for i, message in pairs( message ) do
-            self:SendMessage( player, message )
+            IG.SendMessage( player, message )
         end
     else
         -- Check if we have an existing target to send the message to.
@@ -374,107 +328,7 @@ function PLUGIN:SendMessage( player, message )
     end
 end
 
--- -----------------------------------------------------------------------------
--- PLUGIN:Parse( message, values )
--- -----------------------------------------------------------------------------
--- Replaces the parameters in a message with the corresponding values.
--- -----------------------------------------------------------------------------
--- Credit: m-Teleportation
-function PLUGIN:Parse( msg, values )
-    for k, v in pairs( values ) do
-        -- Replace the variable in the message with the specified value.
-        tostring(v):gsub("(%%)", "%%%%") 
-        msg = msg:gsub( "{" .. k .. "}", v)
-    end
 
-    return msg
-end
-
--- -----------------------------------------------------------------------------
--- PLUGIN:Count( tbl )
--- -----------------------------------------------------------------------------
--- Counts the elements of a table.
--- -----------------------------------------------------------------------------
--- Credit: m-Teleportation
-function PLUGIN:Count( tbl ) 
-    local count = 0
-
-    if type( tbl ) == "table" then
-        for _ in pairs( tbl ) do 
-            count = count + 1 
-        end
-    end
-
-    return count
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:OnPlayerDisconnected(player)
--- -----------------------------------------------------------------------------------
--- Run on Player Disconnect
--- -----------------------------------------------------------------------------------
-function PLUGIN:OnPlayerDisconnected(player)
-    -- Save player inventory
-    self:SavePlayerInventory(player)  
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:OnEntityDeath(entity)
--- -----------------------------------------------------------------------------------
--- When an entity dies
--- -----------------------------------------------------------------------------------
-function PLUGIN:OnEntityDeath(entity)
-    -- Convert entity to player
-    local player = entity:ToPlayer()
-    
-    -- Check if entity is a player
-    if player then
-        -- Grab the player his/her SteamID.
-        local playerID = rust.UserIDFromPlayer( player )
-        -- Add playerID to player death list
-        PlayerDeaths[playerID] = true
-        -- Check if the Restore upon death is enabled
-        if self.Config.Settings.RestoreUponDeath then
-            -- Save player inventory
-            self:SavePlayerInventory(player) 
-        else    
-          -- Reset saved inventory
-          self:ClearSavedInventory(playerID)
-        end
-    end 
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:OnPlayerSpawn(player)
--- -----------------------------------------------------------------------------------
--- When a player spawn
--- -----------------------------------------------------------------------------------
-function PLUGIN:OnPlayerSpawn(player)
-    -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
-    
-    -- Check if the Restore upon death is enabled and if player just died or If player never died = First spawn
-    if (self.Config.Settings.RestoreUponDeath and PlayerDeaths[playerID] == true) or PlayerDeaths[playerID] == nil then
-        -- Check if saved inventory is empty
-        if not self:SavedInventoryIsEmpty (playerID) then
-            -- Check if Once Restoration is enabled and if player never got once restored or if Once Restoration is disabled
-            if InventoryData.RestoreOnce [playerID] == nil and self.Config.Settings.RestoreOnce or not self.Config.Settings.RestoreOnce then
-                -- Restore player inventory
-                self:RestorePlayerInventory ( player ) 
-                -- Check if player never got Once restored and Once Restoration is Enabled
-                if InventoryData.RestoreOnce [playerID] == nil and self.Config.Settings.RestoreOnce then
-                    -- Add Player ID to Once Restorated List
-                    InventoryData.RestoreOnce [playerID] = true
-                    -- Reset saved inventory
-                    self:ClearSavedInventory(playerID)   
-                end
-            end 
-        end
-    end
-    
-    -- Remove PlayerID from player deaths list
-    PlayerDeaths[playerID] = nil
-end
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:RestoreUponDeath (player)
@@ -525,35 +379,7 @@ function PLUGIN:ToggleInventoryGuardian ( player )
       self:SaveConfig()
 end
 
--- -----------------------------------------------------------------------------------
--- PLUGIN:ToggleRestoreOnce ( player )
--- -----------------------------------------------------------------------------------
--- Enable/Disable Once Restoration
--- -----------------------------------------------------------------------------------
-function PLUGIN:ToggleRestoreOnce ( player )
-    -- Check if Inventory Guardian is enabled
-    if self.Config.Settings.Enabled then
-        -- Check if Once Restoration is enabled
-        if self.Config.Settings.RestoreOnce then
-            -- Disable Once Restoration
-            self.Config.Settings.RestoreOnce = false
-            -- Send Message to Player
-            self:SendMessage(player, self.Config.Messages.RestoreOnceDisabled)
-            -- Clear the Restore Once players list
-            InventoryData.RestoreOnce = {}
-            -- Save data
-            self:SaveData()
-        else
-            -- Enable Once Restoration
-            self.Config.Settings.RestoreOnce = true
-            -- Send Message to Player
-            self:SendMessage(player, self.Config.Messages.RestoreOnceEnabled)
-        end
-        
-        -- Save the config.
-        self:SaveConfig()
-      end
-end
+
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:ChangeAuthLevel ( player, authLevel )
@@ -950,13 +776,13 @@ end
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:cmdToggleRestoreOnce ( player )
 -- -----------------------------------------------------------------------------------
--- Enable/Disable Once Restoration
+-- Enable/Disable Automatic restoration
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdToggleRestoreOnce ( player )
+function PLUGIN:cmdToggleAutoRestore ( player )
     -- Check if Inventory Guardian is enabled and If player is allowed
     if self:Check( player ) then
-        -- Toggle restore once
-        self:ToggleRestoreOnce (player)
+        -- Toggle Automatic Restoration
+        self:ToggleAutoRestore (player)
     end
 end
 
@@ -1015,11 +841,11 @@ end
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:ccmdToggleRestoreOnce ()
 -- -----------------------------------------------------------------------------------
--- Enable/Disable Once Restoration
+-- Enable/Disable Automatic restoration
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdToggleRestoreOnce ()
-    -- Toggle once restoration
-    self:ToggleRestoreOnce (nil)
+function PLUGIN:ccmdToggleAutoRestore ()
+    -- Toggle automatic restoration
+    self:ToggleAutoRestore (nil)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -1062,3 +888,144 @@ function PLUGIN:ccmdDeleteAll ()
     self:DeleteAll ()
 end
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:AutomaticRestoration ()
+-- -----------------------------------------------------------------------------------
+-- Detect and restore inventories
+-- -----------------------------------------------------------------------------------
+function PLUGIN:AutomaticRestoration () 
+    if SaveProtocol ~= IG.Data.SaveProtocol then
+        IG.Data.RestoreOnce = {}
+        self:SaveData()
+    end
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- On plugin initialisation the required in-game chat commands are registered and data
+-- from the DataTable file is loaded.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:Init ()
+    -- Add chat commands
+    command.AddChatCommand( "ig.save", IG.Object, "cmdSaveInventory" )
+    command.AddChatCommand( "ig.restore", IG.Object, "cmdRestoreInventory" )
+    command.AddChatCommand( "ig.restoreupondeath", IG.Object, "cmdToggleRestoreUponDeath" )
+    command.AddChatCommand( "ig.delsaved", IG.Object, "cmdDeleteInventory" )
+    command.AddChatCommand( "ig.toggle", IG.Object, "cmdToggleInventoryGuardian" )
+    command.AddChatCommand( "ig.autorestore", IG.Object, "cmdToggleAutoRestore" )
+    command.AddChatCommand( "ig.authlevel", IG.Object, "cmdChangeAuthLevel" )
+    -- Add console commands
+    command.AddConsoleCommand( "ig.authlevel", IG.Object, "ccmdChangeAuthLevel" )
+    command.AddConsoleCommand( "ig.toggle", IG.Object, "ccmdToggleInventoryGuardian" )
+    command.AddConsoleCommand( "ig.restoreupondeath", IG.Object, "ccmdToggleRestoreUponDeath" )
+    command.AddConsoleCommand( "ig.autorestore", IG.Object, "ccmdToggleAutoRestore" )
+    command.AddConsoleCommand( "ig.restoreall", IG.Object, "ccmdRestoreAll" )
+    command.AddConsoleCommand( "ig.saveall", IG.Object, "ccmdSaveAll" )
+    command.AddConsoleCommand( "ig.deleteall", IG.Object, "ccmdDeleteAll" )
+    -- Load default saved data
+    IG.LoadSavedData()
+    -- Copy self to ox
+    ox = self.Object
+    -- Update config version
+    IG.UpdateConfig()
+    -- Add the current save protocol
+    IG.SaveProtocol = Rust.Protocol.save
+
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- On plugin initialisation the required in-game chat commands are registered and data
+-- from the DataTable file is loaded.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:OnServerInitialize()
+    -- Run automatic restoration
+    IG.AutomaticRestoration()
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadDefaultConfig()
+-- -----------------------------------------------------------------------------------
+-- The plugin uses a configuration file to save certain settings and uses it for
+-- localized messages that are send in-game to the players. When this file doesn't
+-- exist a new one will be created with these default values.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:LoadDefaultConfig () 
+    self.Config.Settings = IG.Settings
+    self.Config.Messages = IG.Messages
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadSavedData()
+-- -----------------------------------------------------------------------------------
+-- Load the DataTable file into a table or create a new table when the file doesn't
+-- exist yet.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:LoadSavedData ()
+    IG.Data = datafile.GetDataTable( "Inventory-Guardian" )
+    IG.Data = IG.Data or {}
+    IG.Data.GlobalInventory = IG.Data.GlobalInventory or {}  
+    IG.Data.RestoreOnce = IG.Data.RestoreOnce or {}  
+    IG.Data.SaveProtocol = IG.Data.SaveProtocol or IG.SaveProtocol   
+end
+
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:OnPlayerDisconnected(player)
+-- -----------------------------------------------------------------------------------
+-- Run on Player Disconnect
+-- -----------------------------------------------------------------------------------
+function PLUGIN:OnPlayerDisconnected(player)
+    -- Save player inventory
+    self:SavePlayerInventory(player)  
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:OnEntityDeath(entity)
+-- -----------------------------------------------------------------------------------
+-- When an entity dies
+-- -----------------------------------------------------------------------------------
+function PLUGIN:OnEntityDeath(entity)
+    -- Convert entity to player
+    local player = entity:ToPlayer()
+    
+    -- Check if entity is a player
+    if player then
+        -- Grab the player his/her SteamID.
+        local playerID = rust.UserIDFromPlayer( player )
+        -- Add playerID to player death list
+        PlayerDeaths[playerID] = true
+        -- Check if the Restore upon death is enabled
+        if self.Config.Settings.RestoreUponDeath then
+            -- Save player inventory
+            self:SavePlayerInventory(player) 
+        else    
+          -- Reset saved inventory
+          self:ClearSavedInventory(playerID)
+        end
+    end 
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:OnPlayerSpawn(player)
+-- -----------------------------------------------------------------------------------
+-- When a player spawn
+-- -----------------------------------------------------------------------------------
+function PLUGIN:OnPlayerSpawn(player)
+    -- Grab the player his/her SteamID.
+    local playerID = rust.UserIDFromPlayer( player )
+    
+    -- Check if the Restore upon death is enabled and if player just died or If player never died = First spawn
+    if (self.Config.Settings.RestoreUponDeath and PlayerDeaths[playerID] == true) or PlayerDeaths[playerID] == nil then
+        -- Check if saved inventory is empty
+        if not self:SavedInventoryIsEmpty (playerID) then
+            -- Restore player inventory
+            self:RestorePlayerInventory ( player )  
+        end
+    end
+    
+    -- Remove PlayerID from player deaths list
+    PlayerDeaths[playerID] = nil
+end
