@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.7 by Nexus on 01-18-2015 12:14 PM (GTM -03:00)
+ Version 0.0.8 by Nexus on 01-23-2015 09:36 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 0, 7)
+PLUGIN.Version = V(0, 0, 8)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -559,7 +559,7 @@ function IG:SaveAll ()
                 -- Save Inventory
                 self:SaveInventory(player)
                 -- Send message to console
-                self:Log(nil, self.ox.Config.Messages.SavedPlayerInventory:format(player.displayName))
+                self:Log(self.ox.Config.Messages.SavedPlayerInventory:format(player.displayName))
             end
         end
     end
