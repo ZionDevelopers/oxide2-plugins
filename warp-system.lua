@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.5 by Nexus on 01-12-2015 02:58 PM (GTM -03:00)
+ Version 0.0.6 by Nexus on 02-01-2015 08:37 AM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 5)
+PLUGIN.Version = V(0, 0, 6)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId  = 760
@@ -31,7 +31,6 @@ PLUGIN.ResourceId  = 760
 local WarpData = {}
 local TeleportVectors = {}
 local TeleportPreviousLocation = {}
-local MessageClient = UnityEngine.NetworkNetworkable._type:GetMethod( "MessageClient")
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:Init()
@@ -82,9 +81,9 @@ function PLUGIN:LoadDefaultConfig ()
     }
     
     -- Warp config
-     self.Config.Warp = {
+    self.Config.Warp = {
         ModeratorsCanManage = true
-     }
+    }
     
     -- Plugin Messages:
     self.Config.Messages = {
@@ -461,74 +460,11 @@ end
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
 function PLUGIN:Teleport( player, destination )
-    local preTeleportLocation = new( UnityEngine.Vector3._type, nil )
-    
-    -- Generate values for the pre-teleportation location if these do not exist.
-    if #TeleportVectors == 0 then
-        local boundary = global.TerrainMeta.get_Size().x / 2
-        local coordsArray = util.TableToArray( { 0, 0, 0 } )
-        local tempValues = { 
-            { x = boundary,  y = 0, z = boundary },
-            { x = boundary,  y = 0, z = -boundary },
-            { x = -boundary, y = 0, z = -boundary },
-            { x = -boundary, y = 0, z = boundary }
-        }
-
-        for k, v in pairs( tempValues ) do
-            util.ConvertAndSetOnArray( coordsArray, 0, v.x, System.Single._type )
-            util.ConvertAndSetOnArray( coordsArray, 1, v.y, System.Single._type )
-            util.ConvertAndSetOnArray( coordsArray, 2, v.z, System.Single._type )
-            vector3 = new( UnityEngine.Vector3._type, coordsArray )
-            table.insert( TeleportVectors, vector3 )
-        end
-    end
- 
-    -- Get a valid pre-teleport position, far enough from the current position
-    -- and far enough from the destination.
-    for _,vector3 in pairs( TeleportVectors ) do
-        if UnityEngine.Vector3.Distance( player.transform.position, vector3 ) > 1000 and UnityEngine.Vector3.Distance( destination, vector3 ) > 1000 then
-            preTeleportLocation = vector3
-        end
-    end
-    
-    -- Without the pre-teleport the teleport behavior on short range teleports
-    -- is unreliable. Sometimes it would work, sometimes it wouldn't. Because
-    -- of this we will first teleport the player to a further away position.
-    -- THIS MIGHT NO LONGER BE REQUIRED SINCE SERVERUPDATE 20150109,
-    -- NEXT 3 LINES CAN BE REMOVED AFTER FURTHER TESTING, IF TELEPORT BEHAVIOUR
-    -- SEEMS RATHER UNRELIABLE ON SHORT RANGE TELEPORTS THESE LINES SHOULD BE 
-    -- UNCOMMENTED AGAIN.
-    --player.transform.position = preTeleportLocation
-    --player:UpdateNetworkGroup()
-    --player:UpdatePlayerCollider(true, false)
-
-    -- Add a little bit of height to the destination.
-    destination.y = destination.y + 0.2
-
-    -- Teleport the player to the location he wanted to go.
-    player.transform.position = destination
-
-    -- Set the player flag to receiving snapshots and update the player.
+    player:StartSleeping()
+    rust.ForcePlayerPosition(player, destination.x, destination. y,destination.z)
     player:SetPlayerFlag( global.PlayerFlags.ReceivingSnapshot, true )
     player:UpdateNetworkGroup()
-    player:UpdatePlayerCollider(true, false)
-
-    -- Let the player sleep, this will prevent the player from falling through
-    -- objects while still loading.
-    player:StartSleeping()
-    
-    -- Send the server snapshot to the player.
     player:SendFullSnapshot()
-
-    -- Send the client an RPC Message as it is done in BasePlayer.Respawn()
-    local Data    = new( global.NetworkData._type, nil )
-    Data:WriteUInt( global.StringPool.Get.methodarray[1]:Invoke( nil, util.TableToArray( { "startloading" } ) ) )
-    Data:WriteUInt64( player.net.connection.ownerid )
-
-    MessageClient:Invoke( nil , util.TableToArray( { player.net, player.net.connection, UnityEngine.MSG.RPC_MESSAGE, Data:ToBytes() } ) )
-
-    -- Send a networkupdate.
-    player:SendNetworkUpdateImmediate()
 end
 
 -- -----------------------------------------------------------------------------
