@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.6 by Nexus on 02-01-2015 08:37 AM (GTM -03:00)
+ Version 0.0.5 by Nexus on 02-01-2015 08:37 AM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 6)
+PLUGIN.Version = V(0, 0, 5)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId  = 760
