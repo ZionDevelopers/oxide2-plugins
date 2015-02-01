@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.8 by Nexus on 01-23-2015 09:36 PM (GTM -03:00)
+ Version 0.0.9 by Nexus on 02-01-2015 08:23 AM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 0, 8)
+PLUGIN.Version = V(0, 0, 9)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -783,13 +783,10 @@ function PLUGIN:OnPlayerSpawn(player)
             if IG.Data.RestoreOnce [playerID] == nil then
                 -- Restore player inventory
                 IG:RestorePlayerInventory ( player ) 
-                -- Check if player never got Once restored and Once Restoration is Enabled
-                if IG.Data.RestoreOnce [playerID] == nil then
-                    -- Add Player ID to Once Restorated List
-                    IG.Data.RestoreOnce [playerID] = true
-                    -- Reset saved inventory
-                    IG:ClearSavedInventory(playerID)   
-                end
+                -- Add Player ID to Once Restorated List
+                IG.Data.RestoreOnce [playerID] = true
+                -- Reset saved inventory
+                timer.Once(3, function() IG:ClearSavedInventory(playerID) end)
             end 
         end
     end
@@ -820,7 +817,7 @@ function IG:AutomaticRestoration ()
     -- Check if protocols are detected
     if self.ox.Config.Settings.AutoRestore then
         -- Check if the current Save Protocol is different then the last saved
-        if self.SaveProtocol ~= self.Data.SaveProtocol then
+        if self.SaveProtocol ~= self.Data.SaveProtocol and self.Data.SaveProtocol ~= 0 then
             -- Wipe Restore Once list
             self.Data.RestoreOnce = {}
             -- Send message to console
