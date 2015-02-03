@@ -17,19 +17,19 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.6 by Nexus on 01-16-2015 07:52 AM (GTM -03:00)
+ Version 0.0.7 by Nexus on 02-03-2015 04:41 PM (GTM -03:00)
 ]]
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 6)
+PLUGIN.Version = V(0, 0, 7)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
 
 -- Define Config version
-local ConfigVersion = "0.0.0"
+local ConfigVersion = "0.0.1"
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:Init()
@@ -63,7 +63,6 @@ function PLUGIN:UpdateConfig()
     end
 end
 
-
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:LoadDefaultConfig()
 -- -----------------------------------------------------------------------------------
@@ -77,16 +76,18 @@ function PLUGIN:LoadDefaultConfig ()
         ChatName = "A.D.U",
         Enabled = true,
         RequiredAuthLevel = 2,
-        ConfigVersion = "0.0.0",
+        ConfigVersion = "0.0.1",
+        ChatFormat = "<color=#af5>%s:</color> %s",
+        ChatPlayerIcon = true
     }    
    
     -- Plugin Messages:
     self.Config.Messages = {
         Enabled = "A.D.U has been Enabled!",
         Disabled = "A.D.U has been Disabled!",
-        AuthLevelChanged = "You changed the required Auth Level to {required}!",
+        AuthLevelChanged = "You changed the required Auth Level to %s!",
         InvalidAuthLevel = "You need pass a valid auth level like: admin, owner, mod, moderator, user, player, 0 or 1 or 2!",
-        NotAllowed = "You cannot use that command because you don't have the required Auth Level {required}!",
+        NotAllowed = "You cannot use that command because you don't have the required Auth Level %s!",
      
         Help = {     
             "/adu.toggle - Toggle (Enable/Disable) A.D.U!",
@@ -107,20 +108,18 @@ function PLUGIN:SendMessage( player, message )
     if type( message ) == "table" then
         -- Loop by table of messages and send them one by one
         for i, message in pairs( message ) do
-            self:SendMessage( player, message )
+           self:SendMessage( player, message )
         end
     else
         -- Check if we have an existing target to send the message to.
-        if player then
+        if player ~= nil then
             -- Check if player is connected
-            if player:IsConnected() then
-                -- "Build" the message to be able to show it correctly.
-                message = UnityEngine.StringExtensions.QuoteSafe( message )
+            if player then
                 -- Send the message to the targetted player.
-                player:SendConsoleCommand( "chat.add \"" .. self.Config.Settings.ChatName .. "\""  .. message )
+                player:SendConsoleCommand( "chat.add", self.Config.Settings.ChatPlayerIcon, self.Config.Settings.ChatFormat:format(self.Config.Settings.ChatName, message) )
             end
         else
-            print("[" .. self.Config.Settings.ChatName .. "] "  .. message )
+            self:Log("[" .. self.Config.Settings.ChatName .. "] "  .. message )
         end
     end
 end
@@ -161,19 +160,19 @@ function PLUGIN:ChangeAuthLevel ( player, authLevel )
             -- Set required auth level to admin
             self.Config.Settings.RequiredAuthLevel = 2
             -- Send message to player
-            self:SendMessage(player, self:Parse(self.Config.Messages.AuthLevelChanged, {required = "2"}))
+            self:SendMessage(player, self.Config.Messages.AuthLevelChanged:format("2"))
         -- Check for Mod
         elseif authLevel == "mod" or authLevel == "moderator" or authLevel == "1" then
             -- Set required auth level to moderator
             self.Config.Settings.RequiredAuthLevel = 1
             -- Send message to player
-            self:SendMessage(player, self:Parse(self.Config.Messages.AuthLevelChanged, {required = "1"}))
+            self:SendMessage(player, self.Config.Messages.AuthLevelChanged:format("1"))
         -- Check for Mod
         elseif authLevel == "user" or authLevel == "player" or authLevel == "0" then
             -- Set required auth level to moderator
             self.Config.Settings.RequiredAuthLevel = 0
             -- Send message to player
-            self:SendMessage(player, self:Parse(self.Config.Messages.AuthLevelChanged, {required = "0"}))
+            self:SendMessage(player, self.Config.Messages.AuthLevelChanged:format("0"))
         else
             -- Send message to player
             self:SendMessage(player, self.Config.Messages.InvalidAuthLevel)
@@ -218,22 +217,6 @@ function PLUGIN:IsAdmin( player )
     end
 
     return false
-end
-
--- -----------------------------------------------------------------------------
--- PLUGIN:Parse( message, values )
--- -----------------------------------------------------------------------------
--- Replaces the parameters in a message with the corresponding values.
--- -----------------------------------------------------------------------------
--- Credit: m-Teleportation
-function PLUGIN:Parse( msg, values )
-    for k, v in pairs( values ) do
-        -- Replace the variable in the message with the specified value.
-        tostring(v):gsub("(%%)", "%%%%") 
-        msg = msg:gsub( "{" .. k .. "}", v)
-    end
-
-    return msg
 end
 
 -- -----------------------------------------------------------------------------
