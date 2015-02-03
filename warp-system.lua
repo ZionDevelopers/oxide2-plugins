@@ -460,8 +460,13 @@ end
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
 function PLUGIN:Teleport( player, destination )
+    -- Let the player sleep to prevent the player from falling through objects.
     player:StartSleeping()
-    rust.ForcePlayerPosition(player, destination.x, destination. y,destination.z)
+
+    -- Change the player's position.
+    rust.ForcePlayerPosition( player, destination.x, destination.y, destination.z )
+    
+    -- Set the player flag to receiving snapshots and update the player.
     player:SetPlayerFlag( global.PlayerFlags.ReceivingSnapshot, true )
     player:UpdateNetworkGroup()
     player:SendFullSnapshot()

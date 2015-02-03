@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.9 by Nexus on 02-01-2015 08:23 AM (GTM -03:00)
+ Version 0.1.0 by Nexus on 02-03-2015 04:29 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 0, 9)
+PLUGIN.Version = V(0, 1, 0)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -44,16 +44,18 @@ IG.SaveProtocol = 0
 IG.ox = PLUGIN
 
 -- Define Config version
-IG.ConfigVersion = "0.0.3"
+IG.ConfigVersion = "0.0.4"
 
 -- Define Local config values
 IG.Settings = {
     ChatName = "Inventory Guardian",
     Enabled = true,
     RequiredAuthLevel = 2,
-    ConfigVersion = "0.0.3",
+    ConfigVersion = "0.0.4",
     RestoreUponDeath = false,
-    AutoRestore = true
+    AutoRestore = true,
+    ChatFormat = "<color=#af5>%s:</color> %s",
+    ChatPlayerIcon = true
 }    
    
 -- Define Plugin Messages:
@@ -337,10 +339,8 @@ function IG:SendMessage ( player, message )
         if player ~= nil then
             -- Check if player is connected
             if player then
-                -- "Build" the message to be able to show it correctly.
-                message = UnityEngine.StringExtensions.QuoteSafe( message )
                 -- Send the message to the targetted player.
-                player:SendConsoleCommand( "chat.add \"" .. self.ox.Config.Settings.ChatName .. "\""  .. message )
+                player:SendConsoleCommand( "chat.add", self.ox.Config.Settings.ChatPlayerIcon, self.ox.Config.Settings.ChatFormat:format(self.ox.Config.Settings.ChatName, message) )
             end
         else
             self:Log("[" .. self.ox.Config.Settings.ChatName .. "] "  .. message )
@@ -671,6 +671,65 @@ function IG:findPlayerByName (oPlayer, playerName)
 end
 
 -- -----------------------------------------------------------------------------------
+-- IG:AutomaticRestoration ()
+-- -----------------------------------------------------------------------------------
+-- Detect and restore inventories
+-- -----------------------------------------------------------------------------------
+function IG:AutomaticRestoration () 
+    -- Check if protocols are detected
+    if self.ox.Config.Settings.AutoRestore then
+        -- Check if the current Save Protocol is different then the last saved
+        if self.SaveProtocol ~= self.Data.SaveProtocol and self.Data.SaveProtocol ~= 0 then
+            -- Wipe Restore Once list
+            self.Data.RestoreOnce = {}
+            -- Send message to console
+            self:LogWarning("[" .. self.ox.Config.Settings.ChatName .. "] "  .. self.ox.Config.Messages.AutoRestoreDetected)
+        end
+    end
+
+    -- Set data save protocol
+    self.Data.SaveProtocol = self.SaveProtocol
+    -- Save SaveProtocol
+    self.ox:SaveData()
+end
+
+-- -----------------------------------------------------------------------------------
+-- IG:Log (message)
+-- -----------------------------------------------------------------------------------
+-- Log normal
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function IG:Log(message)
+    local arr = util.TableToArray({ message })
+    UnityEngine.Debug.Log.methodarray[0]:Invoke(nil,arr)
+end
+
+-- -----------------------------------------------------------------------------------
+-- IG:LogWarning (message)
+-- -----------------------------------------------------------------------------------
+-- Log Warning
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function IG:LogWarning(message)
+    local arr = util.TableToArray({ message })
+    UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil,arr)
+end
+
+-- -----------------------------------------------------------------------------------
+-- IG:LogError (message)
+-- -----------------------------------------------------------------------------------
+-- Log Error
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function IG:LogError(message)
+    local arr = util.TableToArray({ message })
+    UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil,arr)
+end
+
+-- -----------------------------------------------------------------------------------
 -- PLUGIN:Init()
 -- -----------------------------------------------------------------------------------
 -- On plugin initialisation the required in-game chat commands are registered and data
@@ -773,22 +832,19 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:OnPlayerSpawn(player)
     -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
-    
-    -- Check if the Restore upon death is enabled and if player just died or If player never died = First spawn
-    if (self.Config.Settings.RestoreUponDeath and IG.PlayerDeaths[playerID] == true) or IG.PlayerDeaths[playerID] == nil then
-        -- Check if saved inventory is empty
-        if not IG:SavedInventoryIsEmpty (playerID) then
-            -- Check if Once Restoration is enabled and if player never got once restored or if Once Restoration is disabled
-            if IG.Data.RestoreOnce [playerID] == nil then
-                -- Restore player inventory
-                IG:RestorePlayerInventory ( player ) 
-                -- Add Player ID to Once Restorated List
-                IG.Data.RestoreOnce [playerID] = true
-                -- Reset saved inventory
-                timer.Once(3, function() IG:ClearSavedInventory(playerID) end)
-            end 
-        end
+    local playerID = rust.UserIDFromPlayer( player )    
+
+    -- Check if saved inventory is empty
+    if not IG:SavedInventoryIsEmpty (playerID) then
+        -- Check if Once Restoration is enabled and if player never got once restored or if Once Restoration is disabled or if the Restore upon death is enabled and if player just died or If player never died = First spawn
+        if IG.Data.RestoreOnce [playerID] == nil or (self.Config.Settings.RestoreUponDeath and IG.PlayerDeaths[playerID] == true) or IG.PlayerDeaths[playerID] == nil then
+            -- Restore player inventory
+            IG:RestorePlayerInventory ( player ) 
+            -- Add Player ID to Once Restorated List
+            IG.Data.RestoreOnce [playerID] = true
+            -- Reset saved inventory
+            timer.Once(3, function() IG:ClearSavedInventory(playerID) end)
+        end 
     end
     
     -- Remove PlayerID from player deaths list
@@ -806,65 +862,6 @@ function PLUGIN:SendHelpText(player)
         -- Send message to player
         IG:SendMessage(player, self.Config.Messages.Help)
     end
-end
-
--- -----------------------------------------------------------------------------------
--- IG:AutomaticRestoration ()
--- -----------------------------------------------------------------------------------
--- Detect and restore inventories
--- -----------------------------------------------------------------------------------
-function IG:AutomaticRestoration () 
-    -- Check if protocols are detected
-    if self.ox.Config.Settings.AutoRestore then
-        -- Check if the current Save Protocol is different then the last saved
-        if self.SaveProtocol ~= self.Data.SaveProtocol and self.Data.SaveProtocol ~= 0 then
-            -- Wipe Restore Once list
-            self.Data.RestoreOnce = {}
-            -- Send message to console
-            self:LogWarning("[" .. self.ox.Config.Settings.ChatName .. "] "  .. self.ox.Config.Messages.AutoRestoreDetected)
-        end
-    end
-
-    -- Set data save protocol
-    self.Data.SaveProtocol = self.SaveProtocol
-    -- Save SaveProtocol
-    self.ox:SaveData()
-end
-
--- -----------------------------------------------------------------------------------
--- IG:Log (message)
--- -----------------------------------------------------------------------------------
--- Log normal
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function IG:Log(message)
-    local arr = util.TableToArray({ message })
-    UnityEngine.Debug.Log.methodarray[0]:Invoke(nil,arr)
-end
-
--- -----------------------------------------------------------------------------------
--- IG:LogWarning (message)
--- -----------------------------------------------------------------------------------
--- Log Warning
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function IG:LogWarning(message)
-    local arr = util.TableToArray({ message })
-    UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil,arr)
-end
-
--- -----------------------------------------------------------------------------------
--- IG:LogError (message)
--- -----------------------------------------------------------------------------------
--- Log Error
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function IG:LogError(message)
-    local arr = util.TableToArray({ message })
-    UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil,arr)
 end
 
 -- -----------------------------------------------------------------------------------
