@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.1 by Nexus on 02-4-2015 02:26 PM (GTM -03:00)
+ Version 0.1.2 by Nexus on 02-04-2015 03:02 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 1)
+PLUGIN.Version = V(0, 1, 2)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -730,12 +730,15 @@ function IG:LogError(message)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:Init()
+-- PLUGIN:OnServerInitialized()
 -- -----------------------------------------------------------------------------------
--- On plugin initialisation the required in-game chat commands are registered and data
+-- On server initialisation finished the required in-game chat commands are registered and data
 -- from the DataTable file is loaded.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:Init ()
+function PLUGIN:OnServerInitialized()        
+    -- Add the current save protocol
+    IG.SaveProtocol = Rust.Protocol.save
+    
     -- Add chat commands
     command.AddChatCommand( "ig.save", self.Object, "cmdSaveInventory" )
     command.AddChatCommand( "ig.restore", self.Object, "cmdRestoreInventory" )
@@ -760,17 +763,7 @@ function PLUGIN:Init ()
     
     -- Update config version
     IG:UpdateConfig()
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:OnServerInitialized()
--- -----------------------------------------------------------------------------------
--- On plugin initialisation the required in-game chat commands are registered and data
--- from the DataTable file is loaded.
--- -----------------------------------------------------------------------------------
-function PLUGIN:OnServerInitialized()        
-    -- Add the current save protocol
-    IG.SaveProtocol = Rust.Protocol.save
+    
     -- Run automatic restoration
     IG:AutomaticRestoration()
 end
