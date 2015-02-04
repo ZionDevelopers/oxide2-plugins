@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.0 by Nexus on 02-03-2015 04:29 PM (GTM -03:00)
+ Version 0.1.1 by Nexus on 02-4-2015 02:26 PM (GTM -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 0)
+PLUGIN.Version = V(0, 1, 1)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -899,7 +899,7 @@ function PLUGIN:cmdSaveInventory ( player, _, args )
          -- Check if oPlayer is the same then player
         if player ~= oPlayer then
             -- Send message to Oplayer
-            self:SendMessage(oPlayer, self.Config.Messages.SavedPlayerInventory:format(player.displayName))
+            IG:SendMessage(oPlayer, self.Config.Messages.SavedPlayerInventory:format(player.displayName))
         end
     end
 end
@@ -939,7 +939,7 @@ function PLUGIN:cmdRestoreInventory ( player, _, args )
         -- Check if oPlayer is the same then player
         if player ~= oPlayer then
             -- Send message to oPlayer
-            self:SendMessage(oPlayer, self.Config.Messages.RestoredPlayerInventory:format(player.displayName))
+            IG:SendMessage(oPlayer, self.Config.Messages.RestoredPlayerInventory:format(player.displayName))
         end
     end
 end
