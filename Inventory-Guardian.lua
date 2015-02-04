@@ -179,7 +179,7 @@ end
     local wearCount = 0
     
     -- Reset saved inventory
-    IG:ClearSavedInventory(playerID)
+    self:ClearSavedInventory(playerID)
     
     -- Loop by the Belt Items
     while beltItems:MoveNext() do
