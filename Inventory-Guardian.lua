@@ -462,8 +462,16 @@ end
 -- Checks if the player is allowed to run an admin (or moderator or user) only command.
 -- -----------------------------------------------------------------------------------
 function IG:IsAllowed(player)
-  -- Compare the Player's AuthLevel with the required AuthLevel, if it's higher or equal
-  return player:GetComponent("BaseNetworkable").net.connection.authLevel >= self.Settings.RequiredAuthLevel
+  -- Check if player is valid
+  if player ~= nil then
+    -- Check if is connected
+    if player:GetComponent("BaseNetworkable").net.connection ~= nil then
+      -- Compare the Player's AuthLevel with the required AuthLevel, if it's higher or equal
+      return player:GetComponent("BaseNetworkable").net.connection.authLevel >= self.Settings.RequiredAuthLevel
+    end
+  end
+
+  return false
 end
 
 -- -----------------------------------------------------------------------------------
