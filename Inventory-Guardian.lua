@@ -349,7 +349,7 @@ function IG:SendMessage(player, message)
         rust.SendChatMessage(player, self.Settings.ChatName, message)
       end
     else
-      self:Log("["..self.Settings.ChatName.."] "..message)
+      self:Log(self.Settings.ChatName.." "..message)
     end
   end
 end
