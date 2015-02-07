@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.8 by Nexus on 02-07-2015 03:41 PM (UTC -03:00)
+ Version 0.0.8 by Nexus on 02-07-2015 09:35 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
@@ -65,30 +65,13 @@ ADU.DefaultMessages = {
 }
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:Init()
--- -----------------------------------------------------------------------------------
--- On plugin initialisation the required in-game chat commands are registered and data
--- from the DataTable file is loaded.
--- -----------------------------------------------------------------------------------
-function PLUGIN:Init ()
-  -- Add chat commands
-  command.AddChatCommand("adu.authlevel", self.Object, "cmdChangeAuthLevel")
-  command.AddChatCommand("adu.toggle", self.Object, "cmdToggleADU")
-  -- Add console commands
-  command.AddConsoleCommand("adu.authlevel", self.Object, "ccmdChangeAuthLevel")
-  command.AddConsoleCommand("adu.toggle", self.Object, "ccmdToggleADU")
-  -- Update config version
-  ADU:UpdateConfig()
-end
-
--- -----------------------------------------------------------------------------------
 -- ADU:UpdateConfig()
 -- -----------------------------------------------------------------------------------
 -- It check if the config version is outdated
 -- -----------------------------------------------------------------------------------
 function ADU:UpdateConfig()
   -- Check if the current config version differs from the saved
-  if self.Settings.ConfigVersion ~= self.ConfigVersion then
+  if self.ox.Config.Settings.ConfigVersion ~= self.ConfigVersion then
     -- Load the default
     self.ox:LoadDefaultConfig()
     -- Save config
@@ -98,18 +81,6 @@ function ADU:UpdateConfig()
   -- Copy Tables
   self.Settings = self.ox.Config.Settings
   self.Messages = self.ox.Config.Messages
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:LoadDefaultConfig()
--- -----------------------------------------------------------------------------------
--- The plugin uses a configuration file to save certain settings and uses it for
--- localized messages that are send in-game to the players. When this file doesn't
--- exist a new one will be created with these default values.
--- -----------------------------------------------------------------------------------
-function PLUGIN:LoadDefaultConfig ()
-  self.Config.Settings = ADU.DefaultSettings
-  self.Config.Messages = ADU.DefaultMessages
 end
 
 -- -----------------------------------------------------------------------------
@@ -133,7 +104,7 @@ function ADU:SendMessage(player, message)
         rust.SendChatMessage(player, self.Settings.ChatName, message)
       end
     else
-      self:Log("[" .. self.Settings.ChatName .. "] "  .. message )
+      self:Log("["..self.Settings.ChatName.."] "..message )
     end
   end
 end
@@ -162,11 +133,11 @@ function ADU:Toggle(player)
 end
 
 -- -----------------------------------------------------------------------------------
--- ADU:ChangeAuthLevel ( player, authLevel )
+-- ADU:ChangeAuthLevel(player, authLevel)
 -- -----------------------------------------------------------------------------------
 -- Change Auth Level required to use Admin Door Unlocker
 -- -----------------------------------------------------------------------------------
-function ADU:ChangeAuthLevel ( player, authLevel )
+function ADU:ChangeAuthLevel(player, authLevel)
   -- Check if Admin Door Unlocker is enabled
   if self.Settings.Enabled then
     -- Check for Admin
@@ -205,6 +176,73 @@ end
 function ADU:IsAllowed(player)
   -- Compare the Player's AuthLevel with the required AuthLevel, if it's higher or equal
   return player:GetComponent("BaseNetworkable").net.connection.authLevel >= self.Settings.RequiredAuthLevel
+end
+
+-- -----------------------------------------------------------------------------------
+-- ADU:Log(message)
+-- -----------------------------------------------------------------------------------
+-- Log normal
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function ADU:Log(message)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil, arr)
+end
+
+-- -----------------------------------------------------------------------------------
+-- ADU:LogWarning(message)
+-- -----------------------------------------------------------------------------------
+-- Log Warning
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function ADU:LogWarning(message)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil, arr)
+end
+
+-- -----------------------------------------------------------------------------------
+-- ADU:LogError(message)
+-- -----------------------------------------------------------------------------------
+-- Log Error
+-- -----------------------------------------------------------------------------------
+-- Credit: HooksTest
+-- -----------------------------------------------------------------------------------
+function ADU:LogError(message)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil, arr)
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- On plugin initialisation the required in-game chat commands are registered and data
+-- from the DataTable file is loaded.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:Init ()
+  -- Add chat commands
+  command.AddChatCommand("adu.authlevel", self.Object, "cmdChangeAuthLevel")
+  command.AddChatCommand("adu.toggle", self.Object, "cmdToggleADU")
+  
+  -- Add console commands
+  command.AddConsoleCommand("adu.authlevel", self.Object, "ccmdChangeAuthLevel")
+  command.AddConsoleCommand("adu.toggle", self.Object, "ccmdToggleADU")
+  
+  -- Update config version
+  ADU:UpdateConfig()
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadDefaultConfig()
+-- -----------------------------------------------------------------------------------
+-- The plugin uses a configuration file to save certain settings and uses it for
+-- localized messages that are send in-game to the players. When this file doesn't
+-- exist a new one will be created with these default values.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:LoadDefaultConfig ()
+  self.Config.Settings = ADU.DefaultSettings
+  self.Config.Messages = ADU.DefaultMessages
 end
 
 -- -----------------------------------------------------------------------------
@@ -288,7 +326,6 @@ function PLUGIN:CanOpenDoor(player, door)
   end
 end
 
-
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:ccmdChangeAuthLevel(arg)
 -- -----------------------------------------------------------------------------------
@@ -312,41 +349,5 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:ccmdToggleADU ()
   -- Restore Player inventory
-  ADU:Toggle (nil)
-end
-
--- -----------------------------------------------------------------------------------
--- ADU:Log(message)
--- -----------------------------------------------------------------------------------
--- Log normal
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function ADU:Log(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil, arr)
-end
-
--- -----------------------------------------------------------------------------------
--- ADU:LogWarning(message)
--- -----------------------------------------------------------------------------------
--- Log Warning
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function ADU:LogWarning(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil, arr)
-end
-
--- -----------------------------------------------------------------------------------
--- ADU:LogError(message)
--- -----------------------------------------------------------------------------------
--- Log Error
--- -----------------------------------------------------------------------------------
--- Credit: HooksTest
--- -----------------------------------------------------------------------------------
-function ADU:LogError(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil, arr)
+  ADU:Toggle(nil)
 end
