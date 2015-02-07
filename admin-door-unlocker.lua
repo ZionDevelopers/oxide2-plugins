@@ -270,9 +270,9 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:SendHelpText(player)
   -- Check if user is admin
-  if self:IsAdmin(player) then
+  if ADU:IsAllowed(player) then
     -- Send message to player
-    self:SendMessage(player, self.Config.Messages.Help)
+    ADU:SendMessage(player, self.Config.Messages.Help)
   end
 end
 
