@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.3 by Nexus on 02-07-2015 03:41 PM (UTC -03:00)
+ Version 0.1.3 by Nexus on 02-07-2015 05:22 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
@@ -113,11 +113,11 @@ IG.DefaultMessages = {
 }
 
 -- -----------------------------------------------------------------------------------
--- IG:UpdateConfig
+-- IG:UpdateConfig()
 -- -----------------------------------------------------------------------------------
 -- It check if the config version is outdated
 -- -----------------------------------------------------------------------------------
-function IG:UpdateConfig ()
+function IG:UpdateConfig()
   -- Check if the current config version differs from the saved
   if self.Settings.ConfigVersion ~= self.ConfigVersion then
     -- Load the default
@@ -139,10 +139,10 @@ end
 -- -----------------------------------------------------------------------------------
 function IG:ClearSavedInventory (playerID)
   -- Reset inventory
-  self.Data.GlobalInventory [playerID] = {}
-  self.Data.GlobalInventory [playerID]['belt'] = {}
-  self.Data.GlobalInventory [playerID]['main'] = {}
-  self.Data.GlobalInventory [playerID]['wear'] = {}
+  self.Data.GlobalInventory[playerID] = {}
+  self.Data.GlobalInventory[playerID]['belt'] = {}
+  self.Data.GlobalInventory[playerID]['main'] = {}
+  self.Data.GlobalInventory[playerID]['wear'] = {}
   -- Save Inventory
   self.ox:SaveData()
 end
@@ -156,7 +156,7 @@ function IG:DeletePlayerSavedInventory (player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
+    local playerID = rust.UserIDFromPlayer(player)
     -- Clear Saved inventory
     self:ClearSavedInventory(playerID)
     -- Send message to user
@@ -165,13 +165,13 @@ function IG:DeletePlayerSavedInventory (player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:SavePlayerInventory (player)
+-- IG:SavePlayerInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Save player inventory
 -- -----------------------------------------------------------------------------------
-function IG:SaveInventory (player)
+function IG:SaveInventory(player)
   -- Grab the player his/her SteamID.
-  local playerID = rust.UserIDFromPlayer( player )
+  local playerID = rust.UserIDFromPlayer(player)
 
   -- Get Player inventory list
   local belt = player.inventory.containerBelt
@@ -193,7 +193,7 @@ function IG:SaveInventory (player)
   -- Loop by the Belt Items
   while beltItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory [playerID] ['belt'] [tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['belt'][tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount}
     -- Increment the count
     beltCount = beltCount + 1
   end
@@ -201,7 +201,7 @@ function IG:SaveInventory (player)
   -- Loop by the Main Items
   while mainItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory [playerID] ['main'] [tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['main'][tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount}
     -- Increment the count
     mainCount = mainCount + 1
   end
@@ -209,7 +209,7 @@ function IG:SaveInventory (player)
   -- Loop by the Wear Items
   while wearItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory [playerID] ['wear'] [tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['wear'][tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount}
     -- Increment the count
     wearCount = wearCount + 1
   end
@@ -219,11 +219,11 @@ function IG:SaveInventory (player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:SavePlayerInventory (player)
+-- IG:SavePlayerInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Save player inventory and send message
 -- -----------------------------------------------------------------------------------
-function IG:SavePlayerInventory (player)
+function IG:SavePlayerInventory(player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Save player inventory
@@ -234,13 +234,13 @@ function IG:SavePlayerInventory (player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:SavedInventoryIsEmpty ( playerID )
+-- IG:SavedInventoryIsEmpty(playerID)
 -- -----------------------------------------------------------------------------------
 -- Check if player's saved inventory is empty
 -- -----------------------------------------------------------------------------------
-function IG:SavedInventoryIsEmpty (playerID)
+function IG:SavedInventoryIsEmpty(playerID)
   -- Check if player's inventory is null
-  if self.Data.GlobalInventory [playerID] == nil then
+  if self.Data.GlobalInventory[playerID] == nil then
     return true
   else
     -- Check if all inventory containers are empty too
@@ -249,12 +249,12 @@ function IG:SavedInventoryIsEmpty (playerID)
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:Count( tbl )
+-- PLUGIN:Count(tbl)
 -- -----------------------------------------------------------------------------
 -- Counts the elements of a table.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function IG:Count( tbl )
+function IG:Count(tbl)
   local count = 0
 
   if type( tbl ) == "table" then
@@ -267,12 +267,11 @@ function IG:Count( tbl )
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:RestorePlayerInventory (player)
+-- IG:RestorePlayerInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function IG:RestoreInventory (player)
-
+function IG:RestoreInventory(player)
   -- Clear player Inventory
   player.inventory:Strip()
 
@@ -287,35 +286,35 @@ function IG:RestoreInventory (player)
     local Inventory = {}
 
     -- Set inventory
-    Inventory ['belt'] = belt
-    Inventory ['main'] = main
-    Inventory ['wear'] = wear
+    Inventory['belt'] = belt
+    Inventory['main'] = main
+    Inventory['wear'] = wear
 
     -- Loop by player's saved inventory slots
-    for slot, items in pairs( self.Data.GlobalInventory [playerID] ) do
+    for slot, items in pairs(self.Data.GlobalInventory[playerID]) do
       --Loop by slots
-      for i, item in pairs( items ) do
+      for i, item in pairs(items) do
 
         -- Create an inventory item
         local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
 
         -- Set that created inventory item to player
-        player.inventory:GiveItem(itemEntity, Inventory [slot])
+        player.inventory:GiveItem(itemEntity, Inventory[slot])
       end
     end
   end)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:RestorePlayerInventory ()
+-- IG:RestorePlayerInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function IG:RestorePlayerInventory ( player )
+function IG:RestorePlayerInventory (player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
+    local playerID = rust.UserIDFromPlayer(player)
 
     -- Check if saved inventory is empty
     if self:SavedInventoryIsEmpty (playerID) then
@@ -332,16 +331,16 @@ function IG:RestorePlayerInventory ( player )
 end
 
 -- -----------------------------------------------------------------------------
--- IG:SendMessage( target, message )
+-- IG:SendMessage(player, message)
 -- -----------------------------------------------------------------------------
 -- Sends a chatmessage to a player.
 -- -----------------------------------------------------------------------------
-function IG:SendMessage ( player, message )
+function IG:SendMessage(player, message)
   -- Check if the message is a table with multiple messages.
-  if type( message ) == "table" then
+  if type(message) == "table" then
     -- Loop by table of messages and send them one by one
-    for i, message in pairs( message ) do
-      self:SendMessage( player, message )
+    for i, message in pairs(message) do
+      self:SendMessage(player, message)
     end
   else
     -- Check if we have an existing target to send the message to.
@@ -352,17 +351,17 @@ function IG:SendMessage ( player, message )
         rust.SendChatMessage(player, self.Settings.ChatName, message)
       end
     else
-      self:Log("[" .. self.Settings.ChatName .. "] "  .. message )
+      self:Log("["..self.Settings.ChatName.."] "..message)
     end
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:RestoreUponDeath (player)
+-- IG:RestoreUponDeath(player)
 -- -----------------------------------------------------------------------------------
 -- Toogle the config restore upon death
 -- -----------------------------------------------------------------------------------
-function IG:ToggleRestoreUponDeath (player)
+function IG:ToggleRestoreUponDeath(player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Check if Restore Upon Death is enabled
@@ -384,11 +383,11 @@ function IG:ToggleRestoreUponDeath (player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:ToggleInventoryGuardian ( player )
+-- IG:ToggleInventoryGuardian(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function IG:ToggleInventoryGuardian ( player )
+function IG:ToggleInventoryGuardian(player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Disable Inventory Guardian
@@ -406,13 +405,12 @@ function IG:ToggleInventoryGuardian ( player )
   self.ox:SaveConfig()
 end
 
-
 -- -----------------------------------------------------------------------------------
--- IG:ToggleAutoRestore ( player )
+-- IG:ToggleAutoRestore(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Automatic restoration
 -- -----------------------------------------------------------------------------------
-function IG:ToggleAutoRestore ( player )
+function IG:ToggleAutoRestore(player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.AutoRestore then
     -- Disable Inventory Guardian's Auto restore
@@ -431,11 +429,11 @@ function IG:ToggleAutoRestore ( player )
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:ChangeAuthLevel ( player, authLevel )
+-- IG:ChangeAuthLevel(player, authLevel)
 -- -----------------------------------------------------------------------------------
 -- Change Auth Level required to use Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function IG:ChangeAuthLevel ( player, authLevel )
+function IG:ChangeAuthLevel(player, authLevel)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Check for Admin
@@ -443,13 +441,13 @@ function IG:ChangeAuthLevel ( player, authLevel )
       -- Set required auth level to admin
       self.Settings.RequiredAuthLevel = 2
       -- Send message to player
-      self:SendMessage(player, self.Messages.AuthLevelChanged:format("2"))
+      self:SendMessage(player, self.Messages.AuthLevelChanged:format(2))
       -- Check for Mod
     elseif authLevel == "mod" or authLevel == "moderator" or authLevel == "1" then
       -- Set required auth level to moderator
       self.Settings.RequiredAuthLevel = 1
       -- Send message to player
-      self:SendMessage(player, self.Messages.AuthLevelChanged:format("1"))
+      self:SendMessage(player, self.Messages.AuthLevelChanged:format(1))
     else
       -- Send message to player
       self:SendMessage(player, self.Messages.InvalidAuthLevel)
@@ -461,21 +459,21 @@ function IG:ChangeAuthLevel ( player, authLevel )
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:IsAllowed( player )
+-- IG:IsAllowed(player)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run an admin (or moderator or user) only command.
 -- -----------------------------------------------------------------------------------
-function IG:IsAllowed( player )
+function IG:IsAllowed(player)
   -- Compare the Player's AuthLevel with the required AuthLevel, if it's higher or equal
   return player:GetComponent("BaseNetworkable").net.connection.authLevel >= self.Settings.RequiredAuthLevel
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:Check ( player )
+-- IG:Check(player)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run and save Inventory
 -- -----------------------------------------------------------------------------------
-function IG:Check (player)
+function IG:Check(player)
   -- Check if Inventory Guardian is enabled
   if not self.Settings.Enabled then
     -- Send message to player
@@ -483,7 +481,7 @@ function IG:Check (player)
 
     return false
       -- Check if player is allowed and Inventory Guardian is enabled
-  elseif not self:IsAllowed( player ) then
+  elseif not self:IsAllowed(player) then
     -- Send message to player
     self:SendMessage(player, self.Messages.NotAllowed:format(self.Settings.RequiredAuthLevel))
 
@@ -494,11 +492,11 @@ function IG:Check (player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:RestoreAll ( )
+-- IG:RestoreAll()
 -- -----------------------------------------------------------------------------------
 -- Restore all players inventories
 -- -----------------------------------------------------------------------------------
-function IG:RestoreAll ()
+function IG:RestoreAll()
   -- Send message
   self:LogWarning(self.Messages.RestoreInit)
 
@@ -533,11 +531,11 @@ function IG:RestoreAll ()
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:SaveAll ( )
+-- IG:SaveAll()
 -- -----------------------------------------------------------------------------------
 -- Save all players inventories
 -- -----------------------------------------------------------------------------------
-function IG:SaveAll ()
+function IG:SaveAll()
   -- Send message
   self:LogWarning(self.Messages.SaveInit)
 
@@ -569,11 +567,11 @@ function IG:SaveAll ()
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:DeleteAll ( )
+-- IG:DeleteAll()
 -- -----------------------------------------------------------------------------------
 -- Delete all players inventories
 -- -----------------------------------------------------------------------------------
-function IG:DeleteAll ()
+function IG:DeleteAll()
   -- Send message
   self:LogWarning(self.Messages.DeleteInit)
 
@@ -604,19 +602,18 @@ function IG:DeleteAll ()
   self:LogWarning(self.Messages.DeleteAll)
 end
 
-
 -- -----------------------------------------------------------------------------
--- IG:FindPlayersByName( playerName )
+-- IG:FindPlayersByName(playerName)
 -- -----------------------------------------------------------------------------
 -- Searches the online players for a specific name.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function IG:FindPlayersByName( playerName )
+function IG:FindPlayersByName(playerName)
   -- Check if a player name was supplied.
   if not playerName then return end
 
   -- Set the player name to lowercase to be able to search case insensitive.
-  playerName = string.lower( playerName )
+  playerName = string.lower(playerName)
 
   -- Setup some variables to save the matching BasePlayers with that partial
   -- name.
@@ -626,12 +623,12 @@ function IG:FindPlayersByName( playerName )
   -- Iterate through the online player list and check for a match.
   while itPlayerList:MoveNext() do
     -- Get the player his/her display name and set it to lowercase.
-    local displayName = string.lower( itPlayerList.Current.displayName )
+    local displayName = string.lower(itPlayerList.Current.displayName)
 
     -- Look for a match.
-    if string.find( displayName, playerName, 1, true ) then
+    if string.find(displayName, playerName, 1, true) then
       -- Match found, add the player to the list.
-      table.insert( matches, itPlayerList.Current )
+      table.insert(matches, itPlayerList.Current)
     end
   end
 
@@ -640,11 +637,11 @@ function IG:FindPlayersByName( playerName )
 end
 
 -- -----------------------------------------------------------------------------
--- IG:findPlayerByName( oPlayer, playerName )
+-- IG:findPlayerByName(oPlayer, playerName)
 -- -----------------------------------------------------------------------------
 -- Searches the online players for a specific name.
 -- -----------------------------------------------------------------------------
-function IG:findPlayerByName (oPlayer, playerName)
+function IG:findPlayerByName(oPlayer, playerName)
   -- Get a list of matched players
   local players = self:FindPlayersByName(playerName)
   local player = nil
@@ -652,7 +649,7 @@ function IG:findPlayerByName (oPlayer, playerName)
   -- Check if we found the targetted player.
   if self:Count(players) == 0 then
     -- The targetted player couldn't be found, send a message to the player.
-    self:SendMessage( oPlayer, self.Messages.PlayerNotFound )
+    self:SendMessage(oPlayer, self.Messages.PlayerNotFound)
 
     return player
   end
@@ -660,7 +657,7 @@ function IG:findPlayerByName (oPlayer, playerName)
   -- Check if we found multiple players with that partial name.
   if self:Count(players) > 1 then
     -- Multiple players were found, send a message to the player.
-    self:SendMessage( oPlayer, self.Messages.MultiplePlayersFound )
+    self:SendMessage(oPlayer, self.Messages.MultiplePlayersFound)
 
     return player
   else
@@ -672,11 +669,11 @@ function IG:findPlayerByName (oPlayer, playerName)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:AutomaticRestoration ()
+-- IG:AutomaticRestoration()
 -- -----------------------------------------------------------------------------------
 -- Detect and restore inventories
 -- -----------------------------------------------------------------------------------
-function IG:AutomaticRestoration ()
+function IG:AutomaticRestoration()
   -- Check if protocols are detected
   if self.Settings.AutoRestore then
     -- Check if the current Save Protocol is different then the last saved
@@ -684,26 +681,27 @@ function IG:AutomaticRestoration ()
       -- Wipe Restore Once list
       self.Data.RestoreOnce = {}
       -- Send message to console
-      self:LogWarning("[" .. self.Settings.ChatName .. "] "  .. self.Messages.AutoRestoreDetected)
+      self:LogWarning("["..self.Settings.ChatName.."] "..self.Messages.AutoRestoreDetected)
     end
   end
 
   -- Set data save protocol
   self.Data.SaveProtocol = self.SaveProtocol
+  
   -- Save SaveProtocol
   self.ox:SaveData()
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:Log (message)
+-- IG:Log(message)
 -- -----------------------------------------------------------------------------------
 -- Log normal
 -- -----------------------------------------------------------------------------------
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function IG:Log(message)
-  local arr = util.TableToArray({ message })
-  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil,arr)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil, arr)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -714,20 +712,20 @@ end
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function IG:LogWarning(message)
-  local arr = util.TableToArray({ message })
-  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil,arr)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil, arr)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:LogError (message)
+-- IG:LogError(message)
 -- -----------------------------------------------------------------------------------
 -- Log Error
 -- -----------------------------------------------------------------------------------
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function IG:LogError(message)
-  local arr = util.TableToArray({ message })
-  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil,arr)
+  local arr = util.TableToArray({message})
+  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil, arr)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -776,7 +774,7 @@ end
 -- localized messages that are send in-game to the players. When this file doesn't
 -- exist a new one will be created with these default values.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:LoadDefaultConfig ()
+function PLUGIN:LoadDefaultConfig()
   self.Config.Settings = IG.DefaultSettings
   self.Config.Messages = IG.DefaultMessages
 end
@@ -803,7 +801,7 @@ function PLUGIN:OnEntityDeath(entity)
   -- Check if entity is a player
   if player then
     -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
+    local playerID = rust.UserIDFromPlayer(player)
 
     -- Add playerID to player death list
     IG.PlayerDeaths[playerID] = true
@@ -826,7 +824,7 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:OnPlayerSpawn(player)
   -- Grab the player his/her SteamID.
-  local playerID = rust.UserIDFromPlayer( player )
+  local playerID = rust.UserIDFromPlayer(player)
 
   -- Check if saved inventory is empty
   if not IG:SavedInventoryIsEmpty (playerID) then
@@ -846,36 +844,36 @@ function PLUGIN:OnPlayerSpawn(player)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:SendHelpText( player )
+-- PLUGIN:SendHelpText(player)
 -- -----------------------------------------------------------------------------------
 -- HelpText plugin support for the command /help.
 -- -----------------------------------------------------------------------------------
 function PLUGIN:SendHelpText(player)
   -- Check if user is admin
-  if IG:IsAllowed( player ) then
+  if IG:IsAllowed(player) then
     -- Send message to player
     IG:SendMessage(player, self.Config.Messages.Help)
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdSaveInventory ( player, _, args )
+-- PLUGIN:cmdSaveInventory(player, _, args)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run and save Inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdSaveInventory ( player, _, args )
+function PLUGIN:cmdSaveInventory(player, _, args)
   -- Make a copy of the player what ran the command
   local oPlayer = player
   local tPlayer = nil
 
   -- Check if Inventory Guardian is enabled and If player is allowed
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Check if any arg was passed
     if args.Length == 1 then
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName( oPlayer, args[0] )
+        tPlayer = IG:findPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -888,7 +886,7 @@ function PLUGIN:cmdSaveInventory ( player, _, args )
     end
 
     -- Save Player Inventory
-    IG:SavePlayerInventory (player)
+    IG:SavePlayerInventory(player)
 
     -- Check if oPlayer is the same then player
     if player ~= oPlayer then
@@ -899,23 +897,23 @@ function PLUGIN:cmdSaveInventory ( player, _, args )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdRestoreInventory ( player, _, args )
+-- PLUGIN:cmdRestoreInventory(player, _, args)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run and restore Inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdRestoreInventory ( player, _, args )
+function PLUGIN:cmdRestoreInventory(player, _, args)
   -- Make a copy of the player what ran the command
   local oPlayer = player
   local tPlayer = nil
 
   -- Check if Inventory Guardian is enabled and If player is allowed
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Check if any arg was passed
     if args.Length == 1 then
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName( oPlayer, args[0] )
+        tPlayer = IG:findPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -928,7 +926,7 @@ function PLUGIN:cmdRestoreInventory ( player, _, args )
     end
 
     -- Restore player Inventory
-    IG:RestorePlayerInventory (player)
+    IG:RestorePlayerInventory(player)
 
     -- Check if oPlayer is the same then player
     if player ~= oPlayer then
@@ -939,23 +937,23 @@ function PLUGIN:cmdRestoreInventory ( player, _, args )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdDeleteInventory ( player, _, args )
+-- PLUGIN:cmdDeleteInventory(player, _, args)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run and delete Inventory
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdDeleteInventory ( player, _, args )
+function PLUGIN:cmdDeleteInventory(player, _, args)
   -- Make a copy of the player what ran the command
   local oPlayer = player
   local tPlayer = nil
 
   -- Check if Inventory Guardian is enabled and If player is allowed
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Check if any arg was passed
     if args.Length == 1 then
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName( oPlayer, args[0] )
+        tPlayer = IG:findPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -966,7 +964,7 @@ function PLUGIN:cmdDeleteInventory ( player, _, args )
     end
 
     -- Restore player Inventory
-    IG:DeletePlayerSavedInventory (player)
+    IG:DeletePlayerSavedInventory(player)
 
     -- Check if oPlayer is the same then player
     if player ~= oPlayer then
@@ -977,15 +975,15 @@ function PLUGIN:cmdDeleteInventory ( player, _, args )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdToggleInventoryGuardian ( player )
+-- PLUGIN:cmdToggleInventoryGuardian(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdToggleInventoryGuardian ( player )
+function PLUGIN:cmdToggleInventoryGuardian(player)
   -- Check if Inventory Guardian is enabled and If player is allowed
-  if IG:IsAllowed( player ) then
+  if IG:IsAllowed(player) then
     -- Restore Player inventory
-    IG:ToggleInventoryGuardian (player)
+    IG:ToggleInventoryGuardian(player)
   else
     -- Send message to player
     IG:SendMessage(player, self.Config.Messages.NotAllowed:format(self.Config.Settings.RequiredAuthLevel))
@@ -993,26 +991,26 @@ function PLUGIN:cmdToggleInventoryGuardian ( player )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdToggleRestoreOnce ( player )
+-- PLUGIN:cmdToggleRestoreOnce(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Automatic restoration
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdToggleAutoRestore ( player )
+function PLUGIN:cmdToggleAutoRestore(player)
   -- Check if Inventory Guardian is enabled and If player is allowed
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Toggle Automatic Restoration
     IG:ToggleAutoRestore (player)
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdChangeAuthLevel ( player, _, args )
+-- PLUGIN:cmdChangeAuthLevel(player, _, args)
 -- -----------------------------------------------------------------------------------
 -- Change required Auth Level
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdChangeAuthLevel( player, _, args )
+function PLUGIN:cmdChangeAuthLevel(player, _, args)
   -- Check if Inventory Guardian is enabled
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Check for passed args
     if args.Length == 1 then
       -- Change required Auth level
@@ -1022,24 +1020,24 @@ function PLUGIN:cmdChangeAuthLevel( player, _, args )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdToggleRestoreUponDeath ( player )
+-- PLUGIN:cmdToggleRestoreUponDeath(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Restoration upon death
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdToggleRestoreUponDeath ( player )
+function PLUGIN:cmdToggleRestoreUponDeath(player)
   -- Check if Inventory Guardian is enabled
-  if IG:Check( player ) then
+  if IG:Check(player) then
     -- Toggle restore upon death
-    IG:ToggleRestoreUponDeath (player)
+    IG:ToggleRestoreUponDeath(player)
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdChangeAuthLevel ( arg )
+-- PLUGIN:ccmdChangeAuthLevel(arg)
 -- -----------------------------------------------------------------------------------
 -- Change required Auth Level
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdChangeAuthLevel( arg )
+function PLUGIN:ccmdChangeAuthLevel(arg)
   -- Check for passed args
   if arg.Args.Length == 1 then
     -- Change required Auth level
@@ -1048,63 +1046,63 @@ function PLUGIN:ccmdChangeAuthLevel( arg )
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdToggleInventoryGuardian ()
+-- PLUGIN:ccmdToggleInventoryGuardian()
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdToggleInventoryGuardian ()
+function PLUGIN:ccmdToggleInventoryGuardian()
   -- Restore Player inventory
-  IG:ToggleInventoryGuardian (nil)
+  IG:ToggleInventoryGuardian(nil)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdToggleRestoreOnce ()
+-- PLUGIN:ccmdToggleRestoreOnce()
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Automatic restoration
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdToggleAutoRestore ()
+function PLUGIN:ccmdToggleAutoRestore()
   -- Toggle automatic restoration
-  IG:ToggleAutoRestore (nil)
+  IG:ToggleAutoRestore(nil)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdToggleRestoreUponDeath ()
+-- PLUGIN:ccmdToggleRestoreUponDeath()
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Restoration upon death
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdToggleRestoreUponDeath ()
+function PLUGIN:ccmdToggleRestoreUponDeath()
   -- Toggle restore upon death
-  IG:ToggleRestoreUponDeath (nil)
+  IG:ToggleRestoreUponDeath(nil)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdRestoreAll ()
+-- PLUGIN:ccmdRestoreAll()
 -- -----------------------------------------------------------------------------------
 -- Restore All players inventories
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdRestoreAll ()
+function PLUGIN:ccmdRestoreAll()
   -- Restore all players inventories
-  IG:RestoreAll ()
+  IG:RestoreAll()
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdSaveAll ()
+-- PLUGIN:ccmdSaveAll()
 -- -----------------------------------------------------------------------------------
 -- Save All players inventories
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdSaveAll ()
+function PLUGIN:ccmdSaveAll()
   -- Save all players inventories
-  IG:SaveAll ()
+  IG:SaveAll()
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdDeleteAll ()
+-- PLUGIN:ccmdDeleteAll()
 -- -----------------------------------------------------------------------------------
 -- Delete All players inventories
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdDeleteAll ()
+function PLUGIN:ccmdDeleteAll()
   -- Save all players inventories
-  IG:DeleteAll ()
+  IG:DeleteAll()
 end
 
 -- -----------------------------------------------------------------------------------
@@ -1112,7 +1110,7 @@ end
 -- -----------------------------------------------------------------------------------
 -- Strip player inventory
 -- ----------------------------------------------------------------------------------
-function PLUGIN:cmdStripInv (player, _, args)
+function PLUGIN:cmdStripInv(player, _, args)
   -- Copy origin player
   local oPlayer = player
   local tPlayer = nil
@@ -1120,7 +1118,7 @@ function PLUGIN:cmdStripInv (player, _, args)
   -- Check if arg is not empty
   if args[0] ~= "" or args[0] ~= " " then
     -- Find a player by name
-    tPlayer = IG:findPlayerByName( oPlayer, args[0] )
+    tPlayer = IG:findPlayerByName(oPlayer, args[0])
 
     -- Check if player is valid
     if tPlayer ~= nil then
@@ -1150,13 +1148,13 @@ function PLUGIN:cmdStripInv (player, _, args)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:SaveData
+-- PLUGIN:SaveData()
 -- -----------------------------------------------------------------------------------
 -- Saves the table with all the warpdata to a DataTable file.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SaveData ()
+function PLUGIN:SaveData()
   -- Save the DataTable
-  datafile.SaveDataTable( "Inventory-Guardian" )
+  datafile.SaveDataTable("Inventory-Guardian")
 end
 
 -- -----------------------------------------------------------------------------------
@@ -1165,8 +1163,8 @@ end
 -- Load the DataTable file into a table or create a new table when the file doesn't
 -- exist yet.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:LoadSavedData ()
-  IG.Data = datafile.GetDataTable( "Inventory-Guardian" )
+function PLUGIN:LoadSavedData()
+  IG.Data = datafile.GetDataTable("Inventory-Guardian")
   IG.Data = IG.Data or {}
   IG.Data.GlobalInventory = IG.Data.GlobalInventory or {}
   IG.Data.RestoreOnce = IG.Data.RestoreOnce or {}
