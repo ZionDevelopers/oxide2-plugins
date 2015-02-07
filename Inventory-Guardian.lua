@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.3 by Nexus on 02-07-2015 05:22 PM (UTC -03:00)
+ Version 0.1.2 by Nexus on 02-07-2015 05:22 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 3)
+PLUGIN.Version = V(0, 1, 2)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -43,14 +43,13 @@ IG.SaveProtocol = 0
 -- Get a Copy of PLUGIN Class
 IG.ox = PLUGIN
 
--- Define Plugin Settings
-IG.Settings = {}
-
--- Define Plugin Messages
-IG.Messages = {}
-
 -- Define Config version
 IG.ConfigVersion = "0.0.5"
+
+-- Define Settings
+IG.Settings = {}
+-- Define Messages
+IG.Messages = {}
 
 -- Define Local config values
 IG.DefaultSettings = {
@@ -126,10 +125,9 @@ function IG:UpdateConfig()
     self.ox:SaveConfig()
   end
   
-  -- Copy Plugin Settings
-  IG.Settings = self.ox.Config.Settings
-  -- Copy Plugin Messages
-  IG.Messages = self.ox.Config.Messages
+  -- Copy Tables
+  self.Settings = self.ox.Config.Settings
+  self.Messages = self.ox.Config.Messages
 end
 
 -- -----------------------------------------------------------------------------------
@@ -257,8 +255,8 @@ end
 function IG:Count(tbl)
   local count = 0
 
-  if type( tbl ) == "table" then
-    for _ in pairs( tbl ) do
+  if type(tbl) == "table" then
+    for _ in pairs(tbl) do
       count = count + 1
     end
   end
@@ -278,7 +276,7 @@ function IG:RestoreInventory(player)
   -- This fixes the incomplete restoration process
   timer.Once (1, function ()
     -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer( player )
+    local playerID = rust.UserIDFromPlayer(player)
     -- Get Player inventory list
     local belt = player.inventory.containerBelt
     local main = player.inventory.containerMain
@@ -310,7 +308,7 @@ end
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
-function IG:RestorePlayerInventory (player)
+function IG:RestorePlayerInventory(player)
   -- Check if Inventory Guardian is enabled
   if self.Settings.Enabled then
     -- Grab the player his/her SteamID.
@@ -739,23 +737,23 @@ function PLUGIN:OnServerInitialized()
   IG.SaveProtocol = Rust.Protocol.save
 
   -- Add chat commands
-  command.AddChatCommand( "ig.save", self.Plugin, "cmdSaveInventory" )
-  command.AddChatCommand( "ig.restore", self.Plugin, "cmdRestoreInventory" )
-  command.AddChatCommand( "ig.restoreupondeath", self.Plugin, "cmdToggleRestoreUponDeath" )
-  command.AddChatCommand( "ig.delsaved", self.Plugin, "cmdDeleteInventory" )
-  command.AddChatCommand( "ig.toggle", self.Plugin, "cmdToggleInventoryGuardian" )
-  command.AddChatCommand( "ig.autorestore", self.Plugin, "cmdToggleAutoRestore" )
-  command.AddChatCommand( "ig.authlevel", self.Plugin, "cmdChangeAuthLevel" )
-  command.AddChatCommand( "ig.strip", self.Plugin, "cmdStripInv" )
+  command.AddChatCommand( "ig.save", self.Object, "cmdSaveInventory" )
+  command.AddChatCommand( "ig.restore", self.Object, "cmdRestoreInventory" )
+  command.AddChatCommand( "ig.restoreupondeath", self.Object, "cmdToggleRestoreUponDeath" )
+  command.AddChatCommand( "ig.delsaved", self.Object, "cmdDeleteInventory" )
+  command.AddChatCommand( "ig.toggle", self.Object, "cmdToggleInventoryGuardian" )
+  command.AddChatCommand( "ig.autorestore", self.Object, "cmdToggleAutoRestore" )
+  command.AddChatCommand( "ig.authlevel", self.Object, "cmdChangeAuthLevel" )
+  command.AddChatCommand( "ig.strip", self.Object, "cmdStripInv" )
 
   -- Add console commands
-  command.AddConsoleCommand( "ig.authlevel", self.Plugin, "ccmdChangeAuthLevel" )
-  command.AddConsoleCommand( "ig.toggle", self.Plugin, "ccmdToggleInventoryGuardian" )
-  command.AddConsoleCommand( "ig.restoreupondeath", self.Plugin, "ccmdToggleRestoreUponDeath" )
-  command.AddConsoleCommand( "ig.autorestore", self.Plugin, "ccmdToggleAutoRestore" )
-  command.AddConsoleCommand( "ig.restoreall", self.Plugin, "ccmdRestoreAll" )
-  command.AddConsoleCommand( "ig.saveall", self.Plugin, "ccmdSaveAll" )
-  command.AddConsoleCommand( "ig.deleteall", self.Plugin, "ccmdDeleteAll" )
+  command.AddConsoleCommand( "ig.authlevel", self.Object, "ccmdChangeAuthLevel" )
+  command.AddConsoleCommand( "ig.toggle", self.Object, "ccmdToggleInventoryGuardian" )
+  command.AddConsoleCommand( "ig.restoreupondeath", self.Object, "ccmdToggleRestoreUponDeath" )
+  command.AddConsoleCommand( "ig.autorestore", self.Object, "ccmdToggleAutoRestore" )
+  command.AddConsoleCommand( "ig.restoreall", self.Object, "ccmdRestoreAll" )
+  command.AddConsoleCommand( "ig.saveall", self.Object, "ccmdSaveAll" )
+  command.AddConsoleCommand( "ig.deleteall", self.Object, "ccmdDeleteAll" )
 
   -- Load default saved data
   self:LoadSavedData()
@@ -999,7 +997,7 @@ function PLUGIN:cmdToggleAutoRestore(player)
   -- Check if Inventory Guardian is enabled and If player is allowed
   if IG:Check(player) then
     -- Toggle Automatic Restoration
-    IG:ToggleAutoRestore (player)
+    IG:ToggleAutoRestore(player)
   end
 end
 
