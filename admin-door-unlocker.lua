@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.7 by Nexus on 02-03-2015 04:41 PM (GTM -03:00)
+ Version 0.0.8 by Nexus on 02-07-2015 03:41 PM (UTC -03:00)
 ]]
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 7)
+PLUGIN.Version = V(0, 0, 8)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
@@ -39,11 +39,11 @@ local ConfigVersion = "0.0.1"
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
     -- Add chat commands
-    command.AddChatCommand( "adu.authlevel", self.Object, "cmdChangeAuthLevel" )
-    command.AddChatCommand( "adu.toggle", self.Object, "cmdToggleADU" )
+    command.AddChatCommand( "adu.authlevel", self.Plugin, "cmdChangeAuthLevel" )
+    command.AddChatCommand( "adu.toggle", self.Plugin, "cmdToggleADU" )
     -- Add console commands
-    command.AddConsoleCommand( "adu.authlevel", self.Object, "ccmdChangeAuthLevel" )
-    command.AddConsoleCommand( "adu.toggle", self.Object, "ccmdToggleADU" )
+    command.AddConsoleCommand( "adu.authlevel", self.Plugin, "ccmdChangeAuthLevel" )
+    command.AddConsoleCommand( "adu.toggle", self.Plugin, "ccmdToggleADU" )
     -- Update config version
     self:UpdateConfig()
 end

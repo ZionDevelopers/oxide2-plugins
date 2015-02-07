@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.2 by Nexus on 02-04-2015 03:02 PM (GTM -03:00)
+ Version 0.1.3 by Nexus on 02-07-2015 03:41 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 2)
+PLUGIN.Version = V(0, 1, 3)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -740,23 +740,23 @@ function PLUGIN:OnServerInitialized()
     IG.SaveProtocol = Rust.Protocol.save
     
     -- Add chat commands
-    command.AddChatCommand( "ig.save", self.Object, "cmdSaveInventory" )
-    command.AddChatCommand( "ig.restore", self.Object, "cmdRestoreInventory" )
-    command.AddChatCommand( "ig.restoreupondeath", self.Object, "cmdToggleRestoreUponDeath" )
-    command.AddChatCommand( "ig.delsaved", self.Object, "cmdDeleteInventory" )
-    command.AddChatCommand( "ig.toggle", self.Object, "cmdToggleInventoryGuardian" )
-    command.AddChatCommand( "ig.autorestore", self.Object, "cmdToggleAutoRestore" )
-    command.AddChatCommand( "ig.authlevel", self.Object, "cmdChangeAuthLevel" )
-    command.AddChatCommand( "ig.strip", self.Object, "cmdStripInv" )
+    command.AddChatCommand( "ig.save", self.Plugin, "cmdSaveInventory" )
+    command.AddChatCommand( "ig.restore", self.Plugin, "cmdRestoreInventory" )
+    command.AddChatCommand( "ig.restoreupondeath", self.Plugin, "cmdToggleRestoreUponDeath" )
+    command.AddChatCommand( "ig.delsaved", self.Plugin, "cmdDeleteInventory" )
+    command.AddChatCommand( "ig.toggle", self.Plugin, "cmdToggleInventoryGuardian" )
+    command.AddChatCommand( "ig.autorestore", self.Plugin, "cmdToggleAutoRestore" )
+    command.AddChatCommand( "ig.authlevel", self.Plugin, "cmdChangeAuthLevel" )
+    command.AddChatCommand( "ig.strip", self.Plugin, "cmdStripInv" )
     
     -- Add console commands
-    command.AddConsoleCommand( "ig.authlevel", self.Object, "ccmdChangeAuthLevel" )
-    command.AddConsoleCommand( "ig.toggle", self.Object, "ccmdToggleInventoryGuardian" )
-    command.AddConsoleCommand( "ig.restoreupondeath", self.Object, "ccmdToggleRestoreUponDeath" )
-    command.AddConsoleCommand( "ig.autorestore", self.Object, "ccmdToggleAutoRestore" )
-    command.AddConsoleCommand( "ig.restoreall", self.Object, "ccmdRestoreAll" )
-    command.AddConsoleCommand( "ig.saveall", self.Object, "ccmdSaveAll" )
-    command.AddConsoleCommand( "ig.deleteall", self.Object, "ccmdDeleteAll" )
+    command.AddConsoleCommand( "ig.authlevel", self.Plugin, "ccmdChangeAuthLevel" )
+    command.AddConsoleCommand( "ig.toggle", self.Plugin, "ccmdToggleInventoryGuardian" )
+    command.AddConsoleCommand( "ig.restoreupondeath", self.Plugin, "ccmdToggleRestoreUponDeath" )
+    command.AddConsoleCommand( "ig.autorestore", self.Plugin, "ccmdToggleAutoRestore" )
+    command.AddConsoleCommand( "ig.restoreall", self.Plugin, "ccmdRestoreAll" )
+    command.AddConsoleCommand( "ig.saveall", self.Plugin, "ccmdSaveAll" )
+    command.AddConsoleCommand( "ig.deleteall", self.Plugin, "ccmdDeleteAll" )
     
     -- Load default saved data
     self:LoadSavedData()
