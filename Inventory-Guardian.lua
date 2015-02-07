@@ -118,7 +118,7 @@ IG.DefaultMessages = {
 -- -----------------------------------------------------------------------------------
 function IG:UpdateConfig()
   -- Check if the current config version differs from the saved
-  if self.Settings.ConfigVersion ~= self.ConfigVersion then
+  if self.ox.Config.Settings.ConfigVersion ~= self.ConfigVersion then
     -- Load the default
     self.ox:LoadDefaultConfig()
     -- Save config
