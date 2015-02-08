@@ -84,7 +84,7 @@ Warp.DefaultMessages = {
   -- Error Messages:
   NotFound = "Couldn't find the %s warp !",
 
-  -- General Messages:
+  -- Help to admin:
   HelpAdmin = {
     "As an admin you have access to the following commands:",
     "/warp add <name> - Create a new warp at your current location.",
@@ -92,14 +92,24 @@ Warp.DefaultMessages = {
     "/warp del <name> - Delete a warp.",
     "/warp go <name> - Goto a warp.",
     "/warp back - Teleport you back to the location that you was before warp.",
-    "/warp list - List all saved warps."
+    "/warp list - List all saved warps.",
+    "/warp limits - List warp limits"
   },
 
+  -- Help to user
   HelpUser = {
     "As an user you have access to the following commands:",
     "/warp go <name> - Goto a warp.",
     "/warp back - Teleport you back to the location that you was before warp.",
-    "/warp list - List all saved warps."
+    "/warp list - List all saved warps.",
+    "/warp limits - List warp limits."
+  },
+  
+  -- Limits
+  Limits = {
+    "Warp System as the current settings enabled: ",
+    "Time between teleports: %s",
+    "Daily amount of teleports: %d"
   },
 
   -- Syntax Errors Warp System:
@@ -266,9 +276,16 @@ function PLUGIN:cmdWarp(player, _, args)
   elseif cmd == 'back' then
     -- Go Back to the Previous location to Warp
     Warp:Back(player)
+  -- Check if the command is to list warps
   elseif cmd == 'list' then
     -- List Warps
     Warp:List(player)
+  -- Check if the command is to list limits
+  elseif cmd == 'limits' then      
+      -- Send messages to player
+      Warp:SendMessage(player, self.Config.Messages.Limits[1])
+      Warp:SendMessage(player, self.Config.Messages.Limits[2]:format(Warp:ParseRemainingTime(self.Config.Settings.Cooldown)))
+      Warp:SendMessage(player, self.Config.Messages.Limits[3]:format(self.Config.Settings.DailyLimit))  
   else
     -- Send message to player
     Warp:SendMessage(player, 'Command '..cmd..' is not valid!' )    
@@ -337,7 +354,7 @@ function Warp:Del(player, name)
       self:SendMessage(player, self.Messages.Delete:format(name))
     else
       -- Send message to player
-      self:SendMessage(player, self.Messages.NotFound)
+      self:SendMessage(player, self.Messages.NotFound:format(name))
     end
   else
     -- Send message to player
@@ -398,7 +415,7 @@ function Warp:Use(player, name)
     self:Start(player, Warp.Data.WarpPoints[name].x, Warp.Data.WarpPoints[name].y, Warp.Data.WarpPoints[name].z, self.Messages.Warped:format(name), true)
   else
     -- Send message to player
-    self:SendMessage(player, self.Messages.NotFound)
+    self:SendMessage(player, self.Messages.NotFound:format(name))
   end
 end
 
