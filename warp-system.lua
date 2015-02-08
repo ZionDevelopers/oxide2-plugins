@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.6 by Nexus on 02-07-2015 03:41 PM (UTC -03:00)
+ Version 0.0.6 by Nexus on 02-08-2015 03:26 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "warp-system"
@@ -117,21 +117,6 @@ Warp.DefaultMessages = {
 }
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:Init()
--- -----------------------------------------------------------------------------------
--- On plugin initialisation the required in-game chat commands are registered and data
--- from the DataTable file is loaded.
--- -----------------------------------------------------------------------------------
-function PLUGIN:Init ()
-  -- Load default saved data
-  self:LoadSavedData()
-
-  -- Update config version
-  Warp:UpdateConfig()
-  command.AddChatCommand("warp", self.Plugin, "cmdWarp")
-end
-
--- -----------------------------------------------------------------------------------
 -- Warp:UpdateConfig()
 -- -----------------------------------------------------------------------------------
 -- It check if the config version is outdated
@@ -151,41 +136,6 @@ function Warp:UpdateConfig()
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:LoadSavedData()
--- -----------------------------------------------------------------------------------
--- Load the DataTable file into a table or create a new table when the file doesn't
--- exist yet.
--- -----------------------------------------------------------------------------------
-function PLUGIN:LoadSavedData()
-  Warp.Data = datafile.GetDataTable("warp-system")
-  Warp.Data = Warp.Data or {}
-  Warp.Data.WarpPoints =  Warp.Data.WarpPoints or {}
-  Warp.Data.Usage = Warp.Data.Usage or {}
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:SaveData()
--- -----------------------------------------------------------------------------------
--- Saves the table with all the warpdata to a DataTable file.
--- -----------------------------------------------------------------------------------
-function PLUGIN:SaveData()
-  -- Save the DataTable
-  datafile.SaveDataTable("warp-system")
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:LoadDefaultConfig()
--- -----------------------------------------------------------------------------------
--- The plugin uses a configuration file to save certain settings and uses it for
--- localized messages that are send in-game to the players. When this file doesn't
--- exist a new one will be created with these default values.
--- -----------------------------------------------------------------------------------
-function PLUGIN:LoadDefaultConfig()
-  self.Config.Settings = Warp.DefaultSettings
-  self.Config.Messages = Warp.DefaultMessages
-end
-
--- -----------------------------------------------------------------------------------
 -- Warp:IsAllowed(player)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run an admin (or moderator) only command.
@@ -201,97 +151,6 @@ function Warp:IsAllowed(player)
   end
 
   return false
-end
-
--- -----------------------------------------------------------------------------------
--- PLUGIN:cmdWarp(player, cmd, args)
--- -----------------------------------------------------------------------------------
--- In-game '/warp' command for server admins to be able to manage warps.
--- -----------------------------------------------------------------------------------
-function PLUGIN:cmdWarp(player, _, args)
-  -- Check if the Warp System is enabled.
-  if not self.Config.Settings.Enabled then return end
-
-  -- Setup default vars
-  local cmd = ''
-  local param = ''
-  local x = 0
-  local y = 0
-  local z = 0
-
-  -- Check and setup args
-  if args.Length == 1 then
-    cmd = args[0]
-  elseif args.Length == 2 then
-    cmd = args[0]
-    param = args[1]
-  elseif args.Length == 5 then
-    cmd = args[0]
-    param = args[1]
-    x = args[2]
-    y = args[3]
-    z = args[4]
-  end
-
-  -- Check if the command is to add a new warp
-  if cmd == 'add' then
-    -- Check if the warp is at a current location
-    if args.Length >= 2 then
-      -- Test for empty strings
-      if param ~= '' or param ~= ' ' then
-        -- Add a new warp
-        Warp:Add(player, param, x, y, z)
-      end
-    else
-      -- Send message to player
-      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
-      -- List all commands
-      self:SendHelpText(player)
-    end
-    -- Check if the command is to delete a warp
-  elseif cmd == 'del' then
-    -- Check if param is valid
-    if param ~= '' and param ~= ' ' then
-      -- Delete a warp
-      Warp:Del(player, param)
-    else
-      -- Send message to player
-      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
-      -- List all commands
-      self:SendHelpText(player)
-    end
-    -- Check if the command is to use a warp
-  elseif cmd == 'go' then
-    -- Check if param is valid
-    if param ~= '' and param ~= ' ' then
-      -- Use a Warp
-      Warp:Use(player, param)
-    else
-      -- Send message to player
-      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
-      -- List all commands
-      self:SendHelpText(player)
-    end
-    -- Check if the command is to go back before warp
-  elseif cmd == 'back' then
-    -- Go Back to the Previous location to Warp
-    Warp:Back(player)
-  -- Check if the command is to list warps
-  elseif cmd == 'list' then
-    -- List Warps
-    Warp:List(player)
-  -- Check if the command is to list limits
-  elseif cmd == 'limits' then      
-      -- Send messages to player
-      Warp:SendMessage(player, self.Config.Messages.Limits[1])
-      Warp:SendMessage(player, self.Config.Messages.Limits[2]:format(Warp:ParseRemainingTime(self.Config.Settings.Cooldown)))
-      Warp:SendMessage(player, self.Config.Messages.Limits[3]:format(self.Config.Settings.DailyLimit))  
-  else
-    -- Send message to player
-    Warp:SendMessage(player, 'Command '..cmd..' is not valid!' )    
-    -- List all commands
-    self:SendHelpText(player)
-  end
 end
 
 -- -----------------------------------------------------------------------------
@@ -659,6 +518,58 @@ function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
   self:SendMessage(player, self.Messages.Started:format(self.Settings.Countdown))
 end
 
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:Init()
+-- -----------------------------------------------------------------------------------
+-- On plugin initialisation the required in-game chat commands are registered and data
+-- from the DataTable file is loaded.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:Init ()
+  -- Load default saved data
+  self:LoadSavedData()
+
+  -- Update config version
+  Warp:UpdateConfig()
+  
+  -- Add chat command
+  command.AddChatCommand("warp", self.Plugin, "cmdWarp")
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadSavedData()
+-- -----------------------------------------------------------------------------------
+-- Load the DataTable file into a table or create a new table when the file doesn't
+-- exist yet.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:LoadSavedData()
+  Warp.Data = datafile.GetDataTable("warp-system")
+  Warp.Data = Warp.Data or {}
+  Warp.Data.WarpPoints =  Warp.Data.WarpPoints or {}
+  Warp.Data.Usage = Warp.Data.Usage or {}
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:SaveData()
+-- -----------------------------------------------------------------------------------
+-- Saves the table with all the warpdata to a DataTable file.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:SaveData()
+  -- Save the DataTable
+  datafile.SaveDataTable("warp-system")
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:LoadDefaultConfig()
+-- -----------------------------------------------------------------------------------
+-- The plugin uses a configuration file to save certain settings and uses it for
+-- localized messages that are send in-game to the players. When this file doesn't
+-- exist a new one will be created with these default values.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:LoadDefaultConfig()
+  self.Config.Settings = Warp.DefaultSettings
+  self.Config.Messages = Warp.DefaultMessages
+end
+
 -- -----------------------------------------------------------------------------
 -- PLUGIN:OnRunCommand(args)
 -- -----------------------------------------------------------------------------
@@ -680,6 +591,97 @@ function PLUGIN:OnRunCommand(arg)
         Warp:Use(player, location)
       end
     end
+  end
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:cmdWarp(player, cmd, args)
+-- -----------------------------------------------------------------------------------
+-- In-game '/warp' command for server admins to be able to manage warps.
+-- -----------------------------------------------------------------------------------
+function PLUGIN:cmdWarp(player, _, args)
+  -- Check if the Warp System is enabled.
+  if not self.Config.Settings.Enabled then return end
+
+  -- Setup default vars
+  local cmd = ''
+  local param = ''
+  local x = 0
+  local y = 0
+  local z = 0
+
+  -- Check and setup args
+  if args.Length == 1 then
+    cmd = args[0]
+  elseif args.Length == 2 then
+    cmd = args[0]
+    param = args[1]
+  elseif args.Length == 5 then
+    cmd = args[0]
+    param = args[1]
+    x = args[2]
+    y = args[3]
+    z = args[4]
+  end
+
+  -- Check if the command is to add a new warp
+  if cmd == 'add' then
+    -- Check if the warp is at a current location
+    if args.Length >= 2 then
+      -- Test for empty strings
+      if param ~= '' or param ~= ' ' then
+        -- Add a new warp
+        Warp:Add(player, param, x, y, z)
+      end
+    else
+      -- Send message to player
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
+    end
+    -- Check if the command is to delete a warp
+  elseif cmd == 'del' then
+    -- Check if param is valid
+    if param ~= '' and param ~= ' ' then
+      -- Delete a warp
+      Warp:Del(player, param)
+    else
+      -- Send message to player
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
+    end
+    -- Check if the command is to use a warp
+  elseif cmd == 'go' then
+    -- Check if param is valid
+    if param ~= '' and param ~= ' ' then
+      -- Use a Warp
+      Warp:Use(player, param)
+    else
+      -- Send message to player
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
+    end
+    -- Check if the command is to go back before warp
+  elseif cmd == 'back' then
+    -- Go Back to the Previous location to Warp
+    Warp:Back(player)
+  -- Check if the command is to list warps
+  elseif cmd == 'list' then
+    -- List Warps
+    Warp:List(player)
+  -- Check if the command is to list limits
+  elseif cmd == 'limits' then      
+      -- Send messages to player
+      Warp:SendMessage(player, self.Config.Messages.Limits[1])
+      Warp:SendMessage(player, self.Config.Messages.Limits[2]:format(Warp:ParseRemainingTime(self.Config.Settings.Cooldown)))
+      Warp:SendMessage(player, self.Config.Messages.Limits[3]:format(self.Config.Settings.DailyLimit))  
+  else
+    -- Send message to player
+    Warp:SendMessage(player, 'Command '..cmd..' is not valid!' )    
+    -- List all commands
+    self:SendHelpText(player)
   end
 end
 
