@@ -32,8 +32,7 @@ PLUGIN.ResourceId  = 760
 local Warp = {}
 
 Warp.Data = {}
-Warp.TPVecs = {}
-Warp.TPPrevious = {}
+Warp.PreviousLocation = {}
 Warp.Timers = {}
 Warp.ConfigVersion = "0.0.2"
 Warp.ox = PLUGIN
@@ -55,7 +54,7 @@ Warp.DefaultSettings = {
   EnableDailyLimit = true,
   EnableDailyLimitForAdmin = false,
   EnableCoolDownForAdmin = false,
-  Cooldown = 600,
+  Cooldown = 60,
   Countdown = 15,
   DailyLimit = 10,
 }
@@ -66,20 +65,21 @@ Warp.DefaultMessages = {
   Remove = "You have removed the warp %s!",
   List = "The following warps are available:",
   ListEmpty = "There is no warps available at the moment!",
-  Warped = "You Warped to '%s'!",
+  Warped = "You Warped to %s!",
   ListEmpty = "There is no warps available!",
-  Back = "You've teleported back to your previous location!",
+  Back = "You have warped back to your previous location!",
   BackSave = "Your previous location has been saved before you warped, use /warp back to teleport back!",
   Save = "You have saved the %s warp as %d, %d, %d!",
   Delete = "You have deleted the %s warp!",
   Ren = 'You have renamed the warp %s to %s!',
   AuthNeeded = 'You don\'t have the right Auth Level to use "%s!"',
   Exists = 'The warp %s already exists!',
-  Cooldown = "Warp requests have a cooldown of %ds. You need wait %ds to use a Warp again.",
+  Cooldown = "You need wait %s to use it again.",
   LimitReached = "You have reached the daily limit of %d, You need wait until tomorrow to warp again!",
   Interrupted = "You was interrupted, Before Warp!",
   Pending = "You cannot use a Warp now, Because you are still waiting to get Warped!",
-  Started = "You Warp request is on the wait list, It will start on %d seconds.",
+  Started = "Your request is on the wait list, It will start in %d secs.",
+  NoPreviousLocationSaved  = "No previous location saved!",
 
   -- Error Messages:
   NotFound = "Couldn't find the %s warp !",
@@ -103,16 +103,7 @@ Warp.DefaultMessages = {
   },
 
   -- Syntax Errors Warp System:
-  SyntaxCommandWarp = {
-    "A Syntax Error Occurred!",
-    "You can only use the /warp command as follows:",
-    "/warp add <name> - Create a new warp at your current location.",
-    "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
-    "/warp del <name> - Delete a warp.",
-    "/warp go <name> - Goto a warp.",
-    "/warp back - Teleport you back to the location that you was before warp.",
-    "/warp list - List all saved warps."
-  }
+  SyntaxCommand = "A Syntax Error Occurred!"
 }
 
 -- -----------------------------------------------------------------------------------
@@ -122,8 +113,31 @@ Warp.DefaultMessages = {
 -- from the DataTable file is loaded.
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
+  -- Load default saved data
   self:LoadSavedData()
+
+  -- Update config version
+  Warp:UpdateConfig()
   command.AddChatCommand("warp", self.Plugin, "cmdWarp")
+end
+
+-- -----------------------------------------------------------------------------------
+-- Warp:UpdateConfig()
+-- -----------------------------------------------------------------------------------
+-- It check if the config version is outdated
+-- -----------------------------------------------------------------------------------
+function Warp:UpdateConfig()
+  -- Check if the current config version differs from the saved
+  if self.ox.Config.Settings.ConfigVersion ~= self.ConfigVersion then
+    -- Load the default
+    self.ox:LoadDefaultConfig()
+    -- Save config
+    self.ox:SaveConfig()
+  end
+  
+  -- Copy Tables
+  self.Settings = self.ox.Config.Settings
+  self.Messages = self.ox.Config.Messages
 end
 
 -- -----------------------------------------------------------------------------------
@@ -220,7 +234,9 @@ function PLUGIN:cmdWarp(player, _, args)
       end
     else
       -- Send message to player
-      Warp:SendMessage(player, self.Config.Messages.SyntaxCommandWarp)
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
     end
     -- Check if the command is to delete a warp
   elseif cmd == 'del' then
@@ -228,6 +244,11 @@ function PLUGIN:cmdWarp(player, _, args)
     if param ~= '' and param ~= ' ' then
       -- Delete a warp
       Warp:Del(player, param)
+    else
+      -- Send message to player
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
     end
     -- Check if the command is to use a warp
   elseif cmd == 'go' then
@@ -235,6 +256,11 @@ function PLUGIN:cmdWarp(player, _, args)
     if param ~= '' and param ~= ' ' then
       -- Use a Warp
       Warp:Use(player, param)
+    else
+      -- Send message to player
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommand)
+      -- List all commands
+      self:SendHelpText(player)
     end
     -- Check if the command is to go back before warp
   elseif cmd == 'back' then
@@ -245,16 +271,9 @@ function PLUGIN:cmdWarp(player, _, args)
     Warp:List(player)
   else
     -- Send message to player
-    Warp:SendMessage(player, 'Warp command '..cmd..' is not valid!' )
-    
-    -- Check if player is Allowed
-    if Warp:IsAllowed(player) then
-      -- Send admin warp commands
-      Warp:SendMessage(player, self.Config.Messages.HelpAdmin)
-    else
-      -- Send user warp commands
-      Warp:SendMessage(player, self.Config.Messages.HelpAUser)
-    end
+    Warp:SendMessage(player, 'Command '..cmd..' is not valid!' )    
+    -- List all commands
+    self:SendHelpText(player)
   end
 end
 
@@ -281,14 +300,8 @@ function Warp:Add(player, name, x, y, z)
   if self:IsAllowed(player) then
     -- Check if Warp already exists
     if Warp.Data.WarpPoints[name] == nil then
-      -- Check for coordinates
-      if x == 0 and y == 0 and z == 0 then
-        -- Add Warp at player current location
-        Warp.Data.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
-      else
-        -- Add Warp at the the position
-        Warp.Data.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
-      end
+      -- Add Warp at the the position
+      Warp.Data.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
 
       -- Save data
       self.ox:SaveData()
@@ -321,14 +334,14 @@ function Warp:Del(player, name)
       -- Save data
       self.ox:SaveData()
       -- Send message to player
-      self:SendMessage(player, self.Config.Messages.Delete:format(name))
+      self:SendMessage(player, self.Messages.Delete:format(name))
     else
       -- Send message to player
-      self:SendMessage(player, self.Config.Messages.NotFound)
+      self:SendMessage(player, self.Messages.NotFound)
     end
   else
     -- Send message to player
-    self:SendMessage(player, self.Config.Messages.AuthNeeded:format('/warp del'))
+    self:SendMessage(player, self.Messages.AuthNeeded:format('/warp del'))
   end
 end
 
@@ -373,8 +386,14 @@ end
 -- Use a Warp to teleport player to a location.
 -- -----------------------------------------------------------------------------
 function Warp:Use(player, name)
+  -- Get PlayerID
+  local playerID = rust.UserIDFromPlayer(player)
+  
   -- Check if Warp exists
-  if Warp.Data.WarpPoints[name] ~= nil then
+  if Warp.Data.WarpPoints[name] ~= nil then        
+    -- Save current position
+    Warp.PreviousLocation[playerID] = {x = player.transform.position.x, y = player.transform.position.y, z = player.transform.position.z}
+    
     -- Teleport Player to Location
     self:Start(player, Warp.Data.WarpPoints[name].x, Warp.Data.WarpPoints[name].y, Warp.Data.WarpPoints[name].z, self.Messages.Warped:format(name), true)
   else
@@ -391,11 +410,13 @@ end
 function Warp:Back(player)
   -- Get PlayerID
   local playerID = rust.UserIDFromPlayer(player)
-
   -- Check if player already used the Warp
-  if Warp.TPPrevious[playerID] ~= nil then
+  if Warp.PreviousLocation[playerID] ~= nil then
     -- Teleport Player to Location
-    self:Start(player, Warp.TPPrevious[playerID].x, Warp.TPPrevious[playerID].y, Warp.TPPrevious[playerID].z. self.Messages.Back, false)
+    self:Start(player, Warp.PreviousLocation[playerID].x, Warp.PreviousLocation[playerID].y, Warp.PreviousLocation[playerID].z, self.Messages.Back, false)
+  else
+    -- Send message to player
+    self:SendMessage(player, self.Messages.NoPreviousLocationSaved)      
   end
 end
 
@@ -416,7 +437,7 @@ function Warp:List(player)
     end
   else
     -- Send message to player
-    self:SendMessage(player, self.Config.Messages.ListEmpty)
+    self:SendMessage(player, self.Messages.ListEmpty)
   end
 end
 
@@ -475,42 +496,42 @@ function Warp:SendMessage(player, message)
       -- Check if player is connected
       if player then
         -- Send the message to player
-        rust.SendChatMessage(player, self.Config.Settings.ChatName, message)
+        rust.SendChatMessage(player, self.Settings.ChatName, message)
       end
     else
-      self:Log("[" .. self.Config.Settings.ChatName .. "] "  .. message )
+      self:Log("["..self.Settings.ChatName.."] "..message )
     end
   end
 end
 
 -- ----------------------------------------------------------------------------
--- PLUGIN:ParseRemainingTime( time )
+-- Warp:ParseRemainingTime( time )
 -- ----------------------------------------------------------------------------
 -- Returns an amount of seconds as a nice time string.
 -- ----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function PLUGIN:ParseRemainingTime( time )
-    local minutes  = nil
-    local seconds  = nil
+function Warp:ParseRemainingTime( time )
+    local minutes = nil
+    local seconds = nil
     local timeLeft = nil
 
     -- If the amount of seconds is higher than 60 we'll have minutes too, so
     -- start with grabbing the amount of minutes and then take the remainder as
     -- the seconds that are left on the timer.
     if time >= 60 then
-        minutes = math.floor( time / 60 )
-        seconds = time - ( minutes * 60 )
+        minutes = math.floor(time/60)
+        seconds = time - (minutes*60)
     else
         seconds = time
     end
 
     -- Build a nice string with the remaining time.
     if minutes and seconds > 0 then
-        timeLeft = minutes .. " min " .. seconds .. " sec "
+        timeLeft = minutes .. " min"..((minutes > 1) and "s" or "").." " .. seconds .. " sec"..((seconds > 1) and "s" or "")
     elseif minutes and seconds == 0 then
-        timeLeft = minutes .. " min "
+        timeLeft = minutes .. " min"..((minutes > 1) and "s" or "")
     else    
-        timeLeft = seconds .. " sec "
+        timeLeft = seconds .. " sec"..((seconds > 1) and "s" or "")
     end
 
     -- Return the time string.
@@ -524,12 +545,11 @@ end
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
 function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
-      
   -- Get playerID          
-  local playerID = rust.UserIDFromPlayer(player)
-  
+  local playerID = rust.UserIDFromPlayer(player)        
+
   -- Setup variables with todays date and the current timestamp.
-  local timestamp   = time.GetUnixTimestamp()
+  local timestamp = time.GetUnixTimestamp()
   local currentDate = tostring(time.GetCurrentTime():ToString("d"))
 
   -- Check if there is saved teleport data available for the
@@ -556,10 +576,10 @@ function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
   
     return
   end
-
+  
   -- Check if the teleports daily limit is enabled and make sure
   -- that the player has not yet reached the limit.
-  if self.Settings.EnabledDailyLimit and Warp.Data.Usage[playerID].amount >= self.Settings.DailyLimit and (not self:IsAllowed(player) and not self.Settings.EnableDailyLimitForAdmin) then
+  if self.Settings.EnableDailyLimit and Warp.Data.Usage[playerID].amount >= self.Settings.DailyLimit and (not self:IsAllowed(player) and not self.Settings.EnableDailyLimitForAdmin) then
     -- The player has reached the limit, show a message to the
     -- player.
     self:SendMessage(player, self.Messages.LimitReached:format(self.Settings.DailyLimit))
@@ -583,10 +603,7 @@ function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
     destination.x = x
     destination.y = y
     destination.z = z
-    
-    -- Save current position
-    Warp.TPPrevious[playerID] = {x = player.transform.position.x, y = player.transform.position.y, z = player.transform.position.z}
-    
+
     -- Teleport the player to the destination.
     self:Go(player, destination)
     
@@ -594,7 +611,8 @@ function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
     -- timestamp.
     Warp.Data.Usage[playerID].amount = Warp.Data.Usage[playerID].amount + 1
     Warp.Data.Usage[playerID].timestamp = timestamp
-    self:SaveData()
+    -- Save data
+    self.ox:SaveData()
     
     -- Show a message to the player.
     self:SendMessage(player, doneMessage)
@@ -603,14 +621,25 @@ function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
     if sendBackSaveMSG then
       -- Send message to player
       self:SendMessage(player, self.Messages.BackSave)
+    else
+      -- Remove previous location 
+      Warp.PreviousLocation[playerID] = nil
     end    
     
     -- Remove the pending timer info.
     Warp.Timers[playerID] = nil
+    
+    -- Update time
+    timestamp = time.GetUnixTimestamp()
+    currentDate = tostring(time.GetCurrentTime():ToString("d"))
+    
+    -- Update timer
+    Warp.Data.Usage[playerID].date = currentDate
+    Warp.Data.Usage[playerID].timestamp = Warp.Data.Usage[playerID].timestamp or 0
   end)
   
   -- Send message to player
-  self:SendMessage(player, self.Messages.Started:format(self.Messages.Countdown))
+  self:SendMessage(player, self.Messages.Started:format(self.Settings.Countdown))
 end
 
 -- -----------------------------------------------------------------------------
@@ -631,7 +660,7 @@ function PLUGIN:OnRunCommand(arg)
       -- Check for a Warp Location
       if chat == '/'..location then
         -- Use Warp
-        self:WarpUse(player, location)
+        Warp:Use(player, location)
       end
     end
   end
