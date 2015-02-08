@@ -230,12 +230,12 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
   -- Add chat commands
-  command.AddChatCommand("adu.authlevel", self.Object, "cmdChangeAuthLevel")
-  command.AddChatCommand("adu.toggle", self.Object, "cmdToggleADU")
+  command.AddChatCommand("adu.authlevel", self.Plugin, "cmdChangeAuthLevel")
+  command.AddChatCommand("adu.toggle", self.Plugin, "cmdToggleADU")
   
   -- Add console commands
-  command.AddConsoleCommand("adu.authlevel", self.Object, "ccmdChangeAuthLevel")
-  command.AddConsoleCommand("adu.toggle", self.Object, "ccmdToggleADU")
+  command.AddConsoleCommand("adu.authlevel", self.Plugin, "ccmdChangeAuthLevel")
+  command.AddConsoleCommand("adu.toggle", self.Plugin, "ccmdToggleADU")
   
   -- Update config version
   ADU:UpdateConfig()
