@@ -28,9 +28,92 @@ PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId  = 760
 
-local WarpData = {}
-local TeleportVectors = {}
-local TeleportPreviousLocation = {}
+-- Define Warp System Class
+local Warp = {}
+
+Warp.Data = {}
+Warp.TPVecs = {}
+Warp.TPPrevious = {}
+Warp.Timers = {}
+Warp.ConfigVersion = "0.0.2"
+Warp.ox = PLUGIN
+
+-- Define Settings
+Warp.Settings = {}
+
+-- Define Messages
+Warp.Messages = {}
+
+-- General Settings:
+Warp.DefaultSettings = {
+  ChatName = "Warp:",
+  ConfigVersion = "0.0.2",
+  Enabled = true,
+  RequiredAuthLevel = 2,
+  EnableCooldown = true,
+  EnableCountDown = true,
+  EnableDailyLimit = true,
+  EnableDailyLimitForAdmin = false,
+  EnableCoolDownForAdmin = false,
+  Cooldown = 600,
+  Countdown = 15,
+  DailyLimit = 10,
+}
+
+-- Plugin Messages:
+Warp.DefaultMessages = {
+  -- Warp System:
+  Remove = "You have removed the warp %s!",
+  List = "The following warps are available:",
+  ListEmpty = "There is no warps available at the moment!",
+  Warped = "You Warped to '%s'!",
+  ListEmpty = "There is no warps available!",
+  Back = "You've teleported back to your previous location!",
+  BackSave = "Your previous location has been saved before you warped, use /warp back to teleport back!",
+  Save = "You have saved the %s warp as %d, %d, %d!",
+  Delete = "You have deleted the %s warp!",
+  Ren = 'You have renamed the warp %s to %s!',
+  AuthNeeded = 'You don\'t have the right Auth Level to use "%s!"',
+  Exists = 'The warp %s already exists!',
+  Cooldown = "Warp requests have a cooldown of %ds. You need wait %ds to use a Warp again.",
+  LimitReached = "You have reached the daily limit of %d, You need wait until tomorrow to warp again!",
+  Interrupted = "You was interrupted, Before Warp!",
+  Pending = "You cannot use a Warp now, Because you are still waiting to get Warped!",
+  Started = "You Warp request is on the wait list, It will start on %d seconds.",
+
+  -- Error Messages:
+  NotFound = "Couldn't find the %s warp !",
+
+  -- General Messages:
+  HelpAdmin = {
+    "As an admin you have access to the following commands:",
+    "/warp add <name> - Create a new warp at your current location.",
+    "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
+    "/warp del <name> - Delete a warp.",
+    "/warp go <name> - Goto a warp.",
+    "/warp back - Teleport you back to the location that you was before warp.",
+    "/warp list - List all saved warps."
+  },
+
+  HelpUser = {
+    "As an user you have access to the following commands:",
+    "/warp go <name> - Goto a warp.",
+    "/warp back - Teleport you back to the location that you was before warp.",
+    "/warp list - List all saved warps."
+  },
+
+  -- Syntax Errors Warp System:
+  SyntaxCommandWarp = {
+    "A Syntax Error Occurred!",
+    "You can only use the /warp command as follows:",
+    "/warp add <name> - Create a new warp at your current location.",
+    "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
+    "/warp del <name> - Delete a warp.",
+    "/warp go <name> - Goto a warp.",
+    "/warp back - Teleport you back to the location that you was before warp.",
+    "/warp list - List all saved warps."
+  }
+}
 
 -- -----------------------------------------------------------------------------------
 -- PLUGIN:Init()
@@ -39,8 +122,8 @@ local TeleportPreviousLocation = {}
 -- from the DataTable file is loaded.
 -- -----------------------------------------------------------------------------------
 function PLUGIN:Init ()
-    self:LoadSavedData()
-    command.AddChatCommand( "warp", self.Plugin, "cmdWarp" )
+  self:LoadSavedData()
+  command.AddChatCommand("warp", self.Plugin, "cmdWarp")
 end
 
 -- -----------------------------------------------------------------------------------
@@ -49,10 +132,11 @@ end
 -- Load the DataTable file into a table or create a new table when the file doesn't
 -- exist yet.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:LoadSavedData ()
-    WarpData = datafile.GetDataTable( "warp-system" )
-    WarpData = WarpData or {}
-    WarpData.WarpPoints =  WarpData.WarpPoints or {}      
+function PLUGIN:LoadSavedData()
+  Warp.Data = datafile.GetDataTable("warp-system")
+  Warp.Data = Warp.Data or {}
+  Warp.Data.WarpPoints =  Warp.Data.WarpPoints or {}
+  Warp.Data.Usage = Warp.Data.Usage or {}
 end
 
 -- -----------------------------------------------------------------------------------
@@ -60,9 +144,9 @@ end
 -- -----------------------------------------------------------------------------------
 -- Saves the table with all the warpdata to a DataTable file.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:SaveData()  
-    -- Save the DataTable
-    datafile.SaveDataTable( "warp-system" )
+function PLUGIN:SaveData()
+  -- Save the DataTable
+  datafile.SaveDataTable("warp-system")
 end
 
 -- -----------------------------------------------------------------------------------
@@ -72,488 +156,549 @@ end
 -- localized messages that are send in-game to the players. When this file doesn't
 -- exist a new one will be created with these default values.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:LoadDefaultConfig () 
- -- General Settings:
-    self.Config.Settings = {
-        ChatName = "Warp",
-        ConfigVersion = "0.0.1",
-        WarpEnabled = true
-    }
-    
-    -- Warp config
-    self.Config.Warp = {
-        ModeratorsCanManage = true
-    }
-    
-    -- Plugin Messages:
-    self.Config.Messages = {
-        -- Warp System:    
-        WarpRemove = "You have removed the warp {name}!",
-        WarpList = "The following warps are available:",
-        WarpListEmpty = "There is no warps available at the moment!",
-        Warped = "You Warped to '{name}'!",
-        WarpListEmpty = "There is no warps available!",
-        WarpBack = "You've teleported back to your previous location!",
-        WarpBackSave = "Your previous location has been saved before you warped, use /warp back to teleport back!",
-        WarpBoundaries = "X and Z values need to be between -{boundary} and {boundary} while the Y value needs to be between -100 and 2000!",
-        WarpSave = "You have saved the {name} warp as {x}, {y}, {z}!",
-        WarpDelete = "You have deleted the {name} warp!",
-        WarpRen = 'You have renamed the warp {oldname} to {newname}!',
-        WarpAuthNeeded = 'You don\'t have the right Auth Level to use "{command}!"',
-        WarpExists = 'The warp {name} already exists!',
-
-        -- General Messages:
-        WarpHelp = {
-            "As an admin you have access to the following commands:",
-            "/warp add <name> - Create a new warp at your current location.",
-            "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
-            "/warp del <name> - Delete a warp.",
-            "/warp go <name> - Goto a warp.",
-            "/warp back - Teleport you back to the location that you was before warp.",
-            "/warp list - List all saved warps."
-        },
-        
-        WarpHelpAdmin = {
-            "As an admin you have access to the following commands:",
-            "/warp add <name> - Create a new warp at your current location.",
-            "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
-            "/warp del <name> - Delete a warp.",
-            "/warp go <name> - Goto a warp.",
-            "/warp back - Teleport you back to the location that you was before warp.",
-            "/warp list - List all saved warps."
-        },
-        
-        WarpHelpUser = {
-            "As an user you have access to the following commands:",
-            "/warp go <name> - Goto a warp.",
-            "/warp back - Teleport you back to the location that you was before warp.",
-            "/warp list - List all saved warps."
-        },
-
-        -- Error Messages:
-        WarpNotFound = "Couldn't find the {name} warp !",
-        InvalidCoordinates = "The coordinates you've entered are invalid!",
-        WarpGotoLimitReached = "You have reached the daily limit of {limit} warp goto today!",
-
-        -- Syntax Errors Warp System:
-        SyntaxCommandWarp = {
-            "A Syntax Error Occurred!",
-            "You can only use the /warp command as follows:",
-            "/warp add <name> - Create a new warp at your current location.",
-            "/warp add <name> <x> <y> <z> - Create a new warp to the set of coordinates.",
-            "/warp del <name> - Delete a warp.",
-            "/warp go <name> - Goto a warp.",
-            "/warp back - Teleport you back to the location that you was before warp.",
-            "/warp list - List all saved warps."
-        }
-    }
-    
+function PLUGIN:LoadDefaultConfig()
+  self.Config.Settings = Warp.DefaultSettings
+  self.Config.Messages = Warp.DefaultMessages
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:IsAllowed( player )
+-- Warp:IsAllowed(player)
 -- -----------------------------------------------------------------------------------
 -- Checks if the player is allowed to run an admin (or moderator) only command.
 -- -----------------------------------------------------------------------------------
--- Credit: m-Teleportation
-
-function PLUGIN:IsAllowed( player )
-    -- Grab the player his AuthLevel and set the required AuthLevel.
-    local playerAuthLevel = player:GetComponent("BaseNetworkable").net.connection.authLevel
-    local requiredAuthLevel = 2
-    
-    -- Check if Moderators are also allowed to use the commands.
-    if self.Config.Warp.ModeratorsCanManage then
-        -- Moderators are allowed to run the commands, reduce the required AuthLevel
-        -- to 1.
-        requiredAuthLevel = 1   
+function Warp:IsAllowed(player)
+  -- Check if player is valid
+  if player ~= nil then
+    -- Check if is connected
+    if player:GetComponent("BaseNetworkable").net.connection ~= nil then
+      -- Compare the Player's AuthLevel with the required AuthLevel, if it's higher or equal
+      return player:GetComponent("BaseNetworkable").net.connection.authLevel >= self.Settings.RequiredAuthLevel
     end
+  end
 
-    -- Compare the AuthLevel with the required AuthLevel, if it's higher or equal
-    -- then the user is allowed to run the command.
-    if playerAuthLevel >= requiredAuthLevel then
-        return true
-    end
-
-    return false
+  return false
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdWarp( player, cmd, args )                               Admin Command
+-- PLUGIN:cmdWarp(player, cmd, args)
 -- -----------------------------------------------------------------------------------
 -- In-game '/warp' command for server admins to be able to manage warps.
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdWarp( player, _, args )
-    -- Check if the Warp System is enabled.
-    if not self.Config.Settings.WarpEnabled then return end
-    
-    -- Setup default vars
-    local cmd = ''
-    local param = ''
-    local x = 0
-    local y = 0
-    local z = 0
-    
-    -- Check and setup args
-    if args.Length == 1 then
-        cmd = args[0]
-    elseif args.Length == 2 then
-        cmd = args[0]
-        param = args[1]
-    elseif args.Length == 5 then
-        cmd = args[0]
-        param = args[1]
-        x = args[2]
-        y = args[3]
-        z = args[4]
-    end
+function PLUGIN:cmdWarp(player, _, args)
+  -- Check if the Warp System is enabled.
+  if not self.Config.Settings.Enabled then return end
 
-    -- Check if the command is to add a new warp
-    if cmd == 'add' then
-        -- Check if the warp is at a current location
-        if args.Length >= 2 then
-            -- Test for empty strings
-            if param ~= '' or param ~= ' ' then
-              -- Add a new warp
-              self:WarpAdd( player, param, x, y, z )    
-            end            
-        else
-            -- Send message to player
-            self:SendMessage( player, self.Config.Messages.SyntaxCommandWarp )
-        end
-    -- Check if the command is to delete a warp
-    elseif cmd == 'del' then
-        -- Check if param is valid
-        if param ~= '' and param ~= ' ' then
-              -- Delete a warp
-              self:WarpDel( player, param )    
-        end
-    -- Check if the command is to use a warp
-    elseif cmd == 'go' then
-        -- Check if param is valid
-        if param ~= '' and param ~= ' ' then
-            -- Use a Warp
-            self:WarpUse(player, param)
-        end
-    -- Check if the command is to go back before warp
-    elseif cmd == 'back' then
-      -- Go Back to the Previous location to Warp
-       self:WarpBack(player)
-    elseif cmd == 'list' then
-      -- List Warps
-       self:WarpList(player)
+  -- Setup default vars
+  local cmd = ''
+  local param = ''
+  local x = 0
+  local y = 0
+  local z = 0
+
+  -- Check and setup args
+  if args.Length == 1 then
+    cmd = args[0]
+  elseif args.Length == 2 then
+    cmd = args[0]
+    param = args[1]
+  elseif args.Length == 5 then
+    cmd = args[0]
+    param = args[1]
+    x = args[2]
+    y = args[3]
+    z = args[4]
+  end
+
+  -- Check if the command is to add a new warp
+  if cmd == 'add' then
+    -- Check if the warp is at a current location
+    if args.Length >= 2 then
+      -- Test for empty strings
+      if param ~= '' or param ~= ' ' then
+        -- Add a new warp
+        Warp:Add(player, param, x, y, z)
+      end
     else
       -- Send message to player
-      self:SendMessage( player, 'Warp command '.. cmd..' is not valid!' )
-      self:SendMessage(player, self.Config.Messages.WarpHelp)  
+      Warp:SendMessage(player, self.Config.Messages.SyntaxCommandWarp)
     end
+    -- Check if the command is to delete a warp
+  elseif cmd == 'del' then
+    -- Check if param is valid
+    if param ~= '' and param ~= ' ' then
+      -- Delete a warp
+      Warp:Del(player, param)
+    end
+    -- Check if the command is to use a warp
+  elseif cmd == 'go' then
+    -- Check if param is valid
+    if param ~= '' and param ~= ' ' then
+      -- Use a Warp
+      Warp:Use(player, param)
+    end
+    -- Check if the command is to go back before warp
+  elseif cmd == 'back' then
+    -- Go Back to the Previous location to Warp
+    Warp:Back(player)
+  elseif cmd == 'list' then
+    -- List Warps
+    Warp:List(player)
+  else
+    -- Send message to player
+    Warp:SendMessage(player, 'Warp command '..cmd..' is not valid!' )
+    
+    -- Check if player is Allowed
+    if Warp:IsAllowed(player) then
+      -- Send admin warp commands
+      Warp:SendMessage(player, self.Config.Messages.HelpAdmin)
+    else
+      -- Send user warp commands
+      Warp:SendMessage(player, self.Config.Messages.HelpAUser)
+    end
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpAdd( player, name, x, y, z )
+-- Warp:Add(player, name, x, y, z)
 -- -----------------------------------------------------------------------------
 -- Add a new warp.
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpAdd ( player, name, x, y, z ) 
-    -- Get current location
-    local loc = player.transform.position
-    
-    -- Check if was sent any loc
-    if x ~= 0 and y ~= 0 and z ~= 0 then
-      -- Save new location
-      local loc = {}
-      -- Set new loc
-      loc.x = math.floor( x )
-      loc.y = math.floor( y )
-      loc.z = math.floor( z )
-    end
-    
-    -- Check if the player is allowed to run the command.
-    if self:IsAllowed( player ) then 
-        -- Check if Warp already exists
-        if WarpData.WarpPoints[name] == nil then
-            -- Check for coordinates
-            if x == 0 and y == 0 and z == 0 then
-                -- Add Warp at player current location
-                WarpData.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
-            else
-                -- Add Warp at the the position
-                WarpData.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
-            end
-            
-            -- Save data
-            self:SaveData()
-            -- Send message to player
-            self:SendMessage( player, self:Parse( self.Config.Messages.WarpSave, {name = name, x = loc.x, y = loc.y, z = loc.z} ) )
-          else
-              -- Send message to player
-              self:SendMessage( player, self:Parse( self.Config.Messages.WarpExists, {name = name} ) )   
-          end 
+function Warp:Add(player, name, x, y, z)
+  -- Get current location
+  local loc = player.transform.position
+
+  -- Check if was sent any loc
+  if x ~= 0 and y ~= 0 and z ~= 0 then
+    -- Save new location
+    local loc = {}
+    -- Set new loc
+    loc.x = math.floor(x)
+    loc.y = math.floor(y)
+    loc.z = math.floor(z)
+  end
+
+  -- Check if the player is allowed to run the command.
+  if self:IsAllowed(player) then
+    -- Check if Warp already exists
+    if Warp.Data.WarpPoints[name] == nil then
+      -- Check for coordinates
+      if x == 0 and y == 0 and z == 0 then
+        -- Add Warp at player current location
+        Warp.Data.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
       else
-          -- Send message to player
-          self:SendMessage( player, self:Parse( self.Config.Messages.WarpAuthNeeded, {command = '/warp add'} ) ) 
+        -- Add Warp at the the position
+        Warp.Data.WarpPoints[name] = {x = loc.x, y = loc.y, z = loc.z}
       end
+
+      -- Save data
+      self.ox:SaveData()
+
+      -- Send message to player
+      self:SendMessage(player, self.Messages.Save:format(name, loc.x, loc.y, loc.z) )
+    else
+      -- Send message to player
+      self:SendMessage(player, self.Messages.Exists:format(name))
+    end
+  else
+    -- Send message to player
+    self:SendMessage(player, self.Messages.AuthNeeded:format('/warp add'))
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpDel( player, name )
+-- Warp:Del(player, name)
 -- -----------------------------------------------------------------------------
 -- Delete a warp.
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpDel( player, name )
-    -- Check if the player is allowed to run the command.
-    if self:IsAllowed( player ) then 
-      -- Check if Warp exists
-      if WarpData.WarpPoints[name] ~= nil then
-          -- Delete warp
-          WarpData.WarpPoints[name] = nil        
-                  
-          -- Save data
-          self:SaveData()
-          -- Send message to player
-          self:SendMessage( player, self:Parse( self.Config.Messages.WarpDelete, {name = name} ) )
-      else
-        -- Send message to player
-        self:SendMessage( player, self.Config.Messages.WarpNotFound )
-      end      
+function Warp:Del(player, name)
+  -- Check if the player is allowed to run the command.
+  if self:IsAllowed(player) then
+    -- Check if Warp exists
+    if Warp.Data.WarpPoints[name] ~= nil then
+      -- Delete warp
+      Warp.Data.WarpPoints[name] = nil
+
+      -- Save data
+      self.ox:SaveData()
+      -- Send message to player
+      self:SendMessage(player, self.Config.Messages.Delete:format(name))
     else
-        -- Send message to player
-        self:SendMessage( player, self:Parse( self.Config.Messages.WarpAuthNeeded, {command = '/warp del'} ) ) 
+      -- Send message to player
+      self:SendMessage(player, self.Config.Messages.NotFound)
     end
+  else
+    -- Send message to player
+    self:SendMessage(player, self.Config.Messages.AuthNeeded:format('/warp del'))
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpRen( player, oldname, newname )
+-- Warp:Ren(player, oldname, newname)
 -- -----------------------------------------------------------------------------
 -- Rename a warp.
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpRen( player, oldname, newname )
-    print(oldname..';'..newname)
-    -- Check if the player is allowed to run the command.
-    if self:IsAllowed( player ) then 
-      -- Check if Warp exists
-      if WarpData.WarpPoints[oldname] ~= nil then
-           -- Check if Warp new exists
-          if WarpData.WarpPoints[newname] == nil then
-              -- Create a new warp
-              WarpData.WarpPoints[newname] = WarpData.WarpPoints[oldname] 
-              -- Delete warp
-              WarpData.WarpPoints[oldname] = nil        
+function Warp:Ren(player, oldname, newname)
+  -- Check if the player is allowed to run the command.
+  if self:IsAllowed(player) then
+    -- Check if Warp exists
+    if Warp.Data.WarpPoints[oldname] ~= nil then
+      -- Check if Warp new exists
+      if Warp.Data.WarpPoints[newname] == nil then
+        -- Create a new warp
+        Warp.Data.WarpPoints[newname] = Warp.Data.WarpPoints[oldname]
+        -- Delete warp
+        Warp.Data.WarpPoints[oldname] = nil
 
-              -- Save data
-              self:SaveData()
-              -- Send message to player
-              self:SendMessage( player, self:Parse( self.Config.Messages.WarpRen, {newname = newname, oldname = oldname} ) )
-          else
-              -- Send message to player
-              self:SendMessage( player, self:Parse( self.Config.Messages.WarpExists, {name = newname} ) )   
-          end
+        -- Save data
+        self.ox:SaveData()
+        -- Send message to player
+        self:SendMessage(player, self.Messages.Ren:format(newname, oldname))
       else
         -- Send message to player
-        self:SendMessage( player, self:Parse( self.Config.Messages.WarpNotFound,  {name = oldname} ) )
-      end      
+        self:SendMessage( player, self.Messages.Exists:format(newname))
+      end
     else
-        -- Send message to player
-        self:SendMessage( player, self:Parse( self.Config.Messages.WarpAuthNeeded, {command = '/warp ren'} ) ) 
+      -- Send message to player
+      self:SendMessage(player, self.Messages.WarpNotFound:format(oldname))
     end
+  else
+    -- Send message to player
+    self:SendMessage( player, self.Messages.AuthNeeded:format('/warp ren'))
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpUse( player, name )
+-- Warp:Use(player, name)
 -- -----------------------------------------------------------------------------
 -- Use a Warp to teleport player to a location.
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpUse( player, name )
-    -- Check if Warp exists
-    if WarpData.WarpPoints[name] ~= nil then
-      -- Send message to player
-      self:SendMessage( player, self:Parse( self.Config.Messages.Warped, {name = name} ) )
-        -- Teleport Player to Location
-        self:TeleportToPosition(player, WarpData.WarpPoints[name].x, WarpData.WarpPoints[name].y, WarpData.WarpPoints[name].z)
-        -- Send message to player
-        self:SendMessage( player, self.Config.Messages.WarpBackSave)
-    else
-      -- Send message to player
-      self:SendMessage( player, self.Config.Messages.WarpNotFound )
-    end  
+function Warp:Use(player, name)
+  -- Check if Warp exists
+  if Warp.Data.WarpPoints[name] ~= nil then
+    -- Teleport Player to Location
+    self:Start(player, Warp.Data.WarpPoints[name].x, Warp.Data.WarpPoints[name].y, Warp.Data.WarpPoints[name].z, self.Messages.Warped:format(name), true)
+  else
+    -- Send message to player
+    self:SendMessage(player, self.Messages.NotFound)
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpBack( player )
+-- Warp:Back(player)
 -- -----------------------------------------------------------------------------
 -- Go back to a point where the player was
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpBack( player )
-    -- Get PlayerID
-    local playerID = rust.UserIDFromPlayer( player )
-    
-    -- Check if player already used the Warp
-    if TeleportPreviousLocation[playerID] ~= nil then
-      -- Send message to player      
-      self:SendMessage(player,  self.Config.Messages.WarpBack)
-      -- Teleport Player to Location
-      self:TeleportToPosition(player, TeleportPreviousLocation[playerID].x, TeleportPreviousLocation[playerID].y, TeleportPreviousLocation[playerID].z)
-    end    
+function Warp:Back(player)
+  -- Get PlayerID
+  local playerID = rust.UserIDFromPlayer(player)
+
+  -- Check if player already used the Warp
+  if Warp.TPPrevious[playerID] ~= nil then
+    -- Teleport Player to Location
+    self:Start(player, Warp.TPPrevious[playerID].x, Warp.TPPrevious[playerID].y, Warp.TPPrevious[playerID].z. self.Messages.Back, false)
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:WarpList( player )
+-- Warp:List(player)
 -- -----------------------------------------------------------------------------
 -- List all the saved warps
 -- -----------------------------------------------------------------------------
-function PLUGIN:WarpList(player)
+function Warp:List(player)
+  -- Count the Warp Points
+  if self:Count(Warp.Data.WarpPoints) >= 1 then
+    -- Send message to player
+    self:SendMessage(player, self.Messages.List)
 
-    -- Count the Warp Points
-    if self:Count(WarpData.WarpPoints) >= 1 then
-        -- Send message to player
-        self:SendMessage( player, self.Config.Messages.WarpList)
-         
-        -- Loop through all the saved locations and print them one by one.
-        for location, coordinates in pairs( WarpData.WarpPoints ) do
-            self:SendMessage( player, location .. ": " .. math.floor( coordinates.x ) .. " " .. math.floor( coordinates.y ) .. " " .. math.floor( coordinates.z ) )
-        end 
-    else
-        -- Send message to player
-        self:SendMessage( player, self.Config.Messages.WarpListEmpty)
+    -- Loop through all the saved locations and print them one by one.
+    for location, coordinates in pairs(Warp.Data.WarpPoints) do
+      self:SendMessage(player, location..": "..math.floor(coordinates.x).." "..math.floor(coordinates.y).." "..math.floor(coordinates.z))
     end
+  else
+    -- Send message to player
+    self:SendMessage(player, self.Config.Messages.ListEmpty)
+  end
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:Parse( message, values )
--- -----------------------------------------------------------------------------
--- Replaces the parameters in a message with the corresponding values.
--- -----------------------------------------------------------------------------
--- Credit: m-Teleportation
-function PLUGIN:Parse( msg, values )
-    for k, v in pairs( values ) do
-        -- Replace the variable in the message with the specified value.
-        tostring(v):gsub("(%%)", "%%%%") 
-        msg = msg:gsub( "{" .. k .. "}", v)
-    end
-
-    return msg
-end
-
-
--- -----------------------------------------------------------------------------
--- PLUGIN:Count( tbl )
+-- Warp:Count(tbl)
 -- -----------------------------------------------------------------------------
 -- Counts the elements of a table.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function PLUGIN:Count( tbl ) 
-    local count = 0
+function Warp:Count(tbl)
+  local count = 0
 
-    if type( tbl ) == "table" then
-        for _ in pairs( tbl ) do 
-            count = count + 1 
-        end
+  if type(tbl) == "table" then
+    for _ in pairs(tbl) do
+      count = count + 1
     end
+  end
 
-    return count
+  return count
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:Teleport( player, destination )
+-- Warp:Go(player, destination)
 -- -----------------------------------------------------------------------------
 -- Teleports a player to a specific location.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function PLUGIN:Teleport( player, destination )
-    -- Let the player sleep to prevent the player from falling through objects.
-    player:StartSleeping()
+function Warp:Go(player, destination)
+  -- Let the player sleep to prevent the player from falling through objects.
+  player:StartSleeping()
 
-    -- Change the player's position.
-    rust.ForcePlayerPosition( player, destination.x, destination.y, destination.z )
-    
-    -- Set the player flag to receiving snapshots and update the player.
-    player:SetPlayerFlag( global.PlayerFlags.ReceivingSnapshot, true )
-    player:UpdateNetworkGroup()
-    player:SendFullSnapshot()
+  -- Change the player's position.
+  rust.ForcePlayerPosition(player, destination.x, destination.y, destination.z)
+
+  -- Set the player flag to receiving snapshots and update the player.
+  player:SetPlayerFlag(global.PlayerFlags.ReceivingSnapshot, true)
+  player:UpdateNetworkGroup()
+  player:SendFullSnapshot()
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:SendMessage( target, message )
+-- Warp:SendMessage(player, message)
 -- -----------------------------------------------------------------------------
 -- Sends a chatmessage to a player.
 -- -----------------------------------------------------------------------------
--- Credit: m-Teleportation
-function PLUGIN:SendMessage( target, message )
+function Warp:SendMessage(player, message)
+  -- Check if the message is a table with multiple messages.
+  if type(message) == "table" then
+    -- Loop by table of messages and send them one by one
+    for i, message in pairs(message) do
+      self:SendMessage(player, message)
+    end
+  else
     -- Check if we have an existing target to send the message to.
-    if not target then return end
-    if not target:IsConnected() then return end
+    if player ~= nil then
+      -- Check if player is connected
+      if player then
+        -- Send the message to player
+        rust.SendChatMessage(player, self.Config.Settings.ChatName, message)
+      end
+    else
+      self:Log("[" .. self.Config.Settings.ChatName .. "] "  .. message )
+    end
+  end
+end
 
-    -- Check if the message is a table with multiple messages.
-    if type( message ) == "table" then
-        -- The message is a table with multiple messages, send them one by one.
-        for _, message in pairs( message ) do
-            self:SendMessage( target, message )
-        end
+-- ----------------------------------------------------------------------------
+-- PLUGIN:ParseRemainingTime( time )
+-- ----------------------------------------------------------------------------
+-- Returns an amount of seconds as a nice time string.
+-- ----------------------------------------------------------------------------
+-- Credit: m-Teleportation
+function PLUGIN:ParseRemainingTime( time )
+    local minutes  = nil
+    local seconds  = nil
+    local timeLeft = nil
 
-        return
+    -- If the amount of seconds is higher than 60 we'll have minutes too, so
+    -- start with grabbing the amount of minutes and then take the remainder as
+    -- the seconds that are left on the timer.
+    if time >= 60 then
+        minutes = math.floor( time / 60 )
+        seconds = time - ( minutes * 60 )
+    else
+        seconds = time
     end
 
-    -- "Build" the message to be able to show it correctly.
-    message = UnityEngine.StringExtensions.QuoteSafe( message )
+    -- Build a nice string with the remaining time.
+    if minutes and seconds > 0 then
+        timeLeft = minutes .. " min " .. seconds .. " sec "
+    elseif minutes and seconds == 0 then
+        timeLeft = minutes .. " min "
+    else    
+        timeLeft = seconds .. " sec "
+    end
 
-    -- Send the message to the targetted player.
-    target:SendConsoleCommand( "chat.add \"" .. self.Config.Settings.ChatName .. "\""  .. message );
+    -- Return the time string.
+    return timeLeft        
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:TeleportToPosition( player, x, y, z )
+-- PLUGIN:Start(player, x, y, z, sendBackSaveMSG)
 -- -----------------------------------------------------------------------------
 -- Teleports a player to a set of coordinates.
 -- -----------------------------------------------------------------------------
 -- Credit: m-Teleportation
-function PLUGIN:TeleportToPosition( player, x, y, z )
-    local playerID = rust.UserIDFromPlayer( player )
+function Warp:Start(player, x, y, z, doneMessage, sendBackSaveMSG)
+      
+  -- Get playerID          
+  local playerID = rust.UserIDFromPlayer(player)
+  
+  -- Setup variables with todays date and the current timestamp.
+  local timestamp   = time.GetUnixTimestamp()
+  local currentDate = tostring(time.GetCurrentTime():ToString("d"))
+
+  -- Check if there is saved teleport data available for the
+  -- player.
+  if Warp.Data.Usage[playerID] then
+    if Warp.Data.Usage[playerID].date ~= currentDate then
+        Warp.Data.Usage[playerID] = nil
+    end
+  end
+
+  -- Grab the user his/her teleport data.
+  Warp.Data.Usage[playerID] = Warp.Data.Usage[playerID] or {}
+  Warp.Data.Usage[playerID].amount = Warp.Data.Usage[playerID].amount or 0
+  Warp.Data.Usage[playerID].date = currentDate
+  Warp.Data.Usage[playerID].timestamp = Warp.Data.Usage[playerID].timestamp or 0
+
+  -- Check if the cooldown option is enabled and if it is make
+  -- sure that the cooldown time has passed.
+  if self.Settings.EnableCooldown and (timestamp-Warp.Data.Usage[playerID].timestamp) < self.Settings.Cooldown and (not self:IsAllowed(player) and not self.Settings.EnableCooldownForAdmin) then
+    -- Get the remaining time.
+    local remainingTime = self:ParseRemainingTime(self.Settings.Cooldown-(timestamp-Warp.Data.Usage[playerID].timestamp))
+    -- Teleport is on cooldown, show a message to the player.
+    self:SendMessage(player, self.Messages.Cooldown:format(remainingTime))
+  
+    return
+  end
+
+  -- Check if the teleports daily limit is enabled and make sure
+  -- that the player has not yet reached the limit.
+  if self.Settings.EnabledDailyLimit and Warp.Data.Usage[playerID].amount >= self.Settings.DailyLimit and (not self:IsAllowed(player) and not self.Settings.EnableDailyLimitForAdmin) then
+    -- The player has reached the limit, show a message to the
+    -- player.
+    self:SendMessage(player, self.Messages.LimitReached:format(self.Settings.DailyLimit))
+  
+    return
+  end
+
+  -- Check if the player already has a teleport pending.
+  if Warp.Timers[playerID] then
+    -- Send a message to the player.
+    self:SendMessage(player, self.Messages.Pending)
+
+    return
+  end
+  
+  -- no limits were reached so we ca
+  -- teleport the player after a short delay.
+  Warp.Timers[playerID] = timer.Once(self.Settings.Countdown, function()
     -- set the destination for the player.
-    local destination = new( UnityEngine.Vector3._type, nil )
-    destination.x = x 
+    local destination = new(UnityEngine.Vector3._type, nil)
+    destination.x = x
     destination.y = y
     destination.z = z
     
     -- Save current position
-    TeleportPreviousLocation[playerID] = {x = player.transform.position.x, y = player.transform.position.y, z = player.transform.position.z}
-
+    Warp.TPPrevious[playerID] = {x = player.transform.position.x, y = player.transform.position.y, z = player.transform.position.z}
+    
     -- Teleport the player to the destination.
-    self:Teleport( player, destination )
+    self:Go(player, destination)
+    
+    -- Modify the teleport amount and last teleport
+    -- timestamp.
+    Warp.Data.Usage[playerID].amount = Warp.Data.Usage[playerID].amount + 1
+    Warp.Data.Usage[playerID].timestamp = timestamp
+    self:SaveData()
+    
+    -- Show a message to the player.
+    self:SendMessage(player, doneMessage)
+    
+    -- Check if we need send a "Back" message
+    if sendBackSaveMSG then
+      -- Send message to player
+      self:SendMessage(player, self.Messages.BackSave)
+    end    
+    
+    -- Remove the pending timer info.
+    Warp.Timers[playerID] = nil
+  end)
+  
+  -- Send message to player
+  self:SendMessage(player, self.Messages.Started:format(self.Messages.Countdown))
 end
 
 -- -----------------------------------------------------------------------------
--- PLUGIN:OnRunCommand( args )
+-- PLUGIN:OnRunCommand(args)
 -- -----------------------------------------------------------------------------
 -- Triggerd when any player send a chat message.
 -- -----------------------------------------------------------------------------
 function PLUGIN:OnRunCommand(arg)
-    if not arg.connection then return end
-    if not arg.cmd then return end
-    local cmd = arg.cmd.namefull
-    local chat = arg:GetString(0, "text")
-    local player = arg.connection.player
-    
-    if cmd == "chat.say" and string.sub(chat, 1, 1) == "/" then    
-       -- Loop through all the saved locations and print them one by one.
-      for location, _ in pairs( WarpData.WarpPoints ) do
-          -- Check for a Warp Location
-          if chat == '/'..location then
-              -- Use Warp
-              self:WarpUse(player, location)
-          end
+  if not arg.connection then return end
+  if not arg.cmd then return end
+  local cmd = arg.cmd.namefull
+  local chat = arg:GetString(0, "text")
+  local player = arg.connection.player
+
+  if cmd == "chat.say" and string.sub(chat, 1, 1) == "/" then
+    -- Loop through all the saved locations and print them one by one.
+    for location, _ in pairs(Warp.Data.WarpPoints) do
+      -- Check for a Warp Location
+      if chat == '/'..location then
+        -- Use Warp
+        self:WarpUse(player, location)
       end
     end
+  end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:SendHelpText( player )
+-- PLUGIN:SendHelpText(player)
 -- -----------------------------------------------------------------------------------
 -- HelpText plugin support for the command /help.
 -- -----------------------------------------------------------------------------------
 function PLUGIN:SendHelpText(player)
-    if self:IsAllowed( player ) then
-        self:SendMessage(player, self.Config.Messages.WarpHelpAdmin)
-    else
-        self:SendMessage(player, self.Config.Messages.WarpHelpUser)
+  -- Check if player is allowed
+  if Warp:IsAllowed(player) then
+    -- Send message to player
+    Warp:SendMessage(player, self.Config.Messages.HelpAdmin)
+  else
+    -- Send message to player
+    Warp:SendMessage(player, self.Config.Messages.HelpUser)
+  end
+end
+
+-- ----------------------------------------------------------------------------
+-- PLUGIN:OnEntityAttacked(entity, hitinfo)
+-- ----------------------------------------------------------------------------
+-- OnEntityAttacked Oxide Hook. This hook is triggered when an entity
+-- (BasePlayer or BaseNPC) is attacked. This hook is used to interrupt
+-- a teleport when a player takes damage.
+-- ----------------------------------------------------------------------------
+-- Credit: m-Teleportation
+function PLUGIN:OnEntityAttacked(entity, hitinfo)
+    -- Check if the entity taking damage is a player.
+    if entity:ToPlayer() then
+        -- The entity taking damage is a player, grab his/her Steam ID.
+        local playerID = rust.UserIDFromPlayer( entity )
+
+        -- Check if the player has a teleport pending.
+        if Warp.Timers[playerID] ~= nil then
+            -- Send a message to the players or to both players.
+            Warp:SendMessage(entity, self.Config.Messages.Interrupted)
+
+            -- Destroy the timer.
+            Warp.Timers[playerID]:Destroy()
+
+            -- Remove the table entry.
+            Warp.Timers[playerID] = nil
+        end
+
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- PLUGIN:OnPlayerDisconnected(player)
+-- ----------------------------------------------------------------------------
+-- OnPlayerDisconnected Oxide Hook. This hook is triggered when a player leaves
+-- the server. This hook is used to cancel pending the teleport requests and
+-- pending teleports for the disconnecting player.
+-- ----------------------------------------------------------------------------
+-- Credit: m-Teleportation
+function PLUGIN:OnPlayerDisconnected(player)
+    -- Grab the player his/her Steam ID.
+    local playerID = rust.UserIDFromPlayer( player )
+
+    -- Check if the player has a teleport in progress.
+    if Warp.Timers[playerID] ~= nil then
+        -- The player is about to be teleported, cancel the teleport and remove
+        -- the table entry.
+        Warp.Timers[playerID]:Destroy()
+        Warp.Timers[playerID] = nil
     end
 end
