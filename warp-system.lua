@@ -17,16 +17,16 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.6 by Nexus on 02-08-2015 03:26 PM (UTC -03:00)
+ Version 0.0.7 by Nexus on 02-09-2015 08:51 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 6)
+PLUGIN.Version = V(0, 0, 7)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
-PLUGIN.ResourceId  = 760
+PLUGIN.ResourceId = 760
 
 -- Define Warp System Class
 local Warp = {}
@@ -34,7 +34,7 @@ local Warp = {}
 Warp.Data = {}
 Warp.PreviousLocation = {}
 Warp.Timers = {}
-Warp.ConfigVersion = "0.0.2"
+Warp.ConfigVersion = "0.0.3"
 Warp.ox = PLUGIN
 
 -- Define Settings
@@ -46,11 +46,10 @@ Warp.Messages = {}
 -- General Settings:
 Warp.DefaultSettings = {
   ChatName = "Warp:",
-  ConfigVersion = "0.0.2",
+  ConfigVersion = "0.0.3",
   Enabled = true,
   RequiredAuthLevel = 2,
   EnableCooldown = true,
-  EnableCountDown = true,
   EnableDailyLimit = true,
   EnableDailyLimitForAdmin = false,
   EnableCoolDownForAdmin = false,
@@ -64,7 +63,6 @@ Warp.DefaultMessages = {
   -- Warp System:
   Remove = "You have removed the warp %s!",
   List = "The following warps are available:",
-  ListEmpty = "There is no warps available at the moment!",
   Warped = "You Warped to %s!",
   ListEmpty = "There is no warps available!",
   Back = "You have warped back to your previous location!",
@@ -347,9 +345,9 @@ function Warp:Go(player, destination)
 
   -- Change the player's position.
   rust.ForcePlayerPosition(player, destination.x, destination.y, destination.z)
-
+  
   -- Set the player flag to receiving snapshots and update the player.
-  player:SetPlayerFlag(global.PlayerFlags.ReceivingSnapshot, true)
+  player:SetPlayerFlag(global["BasePlayer+PlayerFlags"].ReceivingSnapshot, true)
   player:UpdateNetworkGroup()
   player:SendFullSnapshot()
 end
