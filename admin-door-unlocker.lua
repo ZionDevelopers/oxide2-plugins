@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.8 by Nexus on 02-07-2015 09:35 PM (UTC -03:00)
+ Version 0.0.9 by Nexus on 02-10-2015 12:11 AM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 8)
+PLUGIN.Version = V(0, 0, 9)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
