@@ -328,9 +328,9 @@ function PLUGIN:CanOpenDoor(player, door)
   -- Check if player is admin
   if ADU:IsAllowed(player) and self.Config.Settings.Enabled then
     -- Unlock the door
-    door:SetFlag(global.Flags.Locked, false)
+    door:SetFlag(global["BaseEntity+Flags"].Locked, false)
     -- Lock the door
-    timer.Once(0.1, function() door:SetFlag(global.Flags.Locked,true) end)
+    timer.Once(0.1, function() door:SetFlag(global["BaseEntity+Flags"].Locked, true) end)
   end
 end
 
