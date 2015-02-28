@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.3 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
+ Version 0.1.0 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
