@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.2 by Nexus on 02-07-2015 05:22 PM (UTC -03:00)
+ Version 0.1.3 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 2)
+PLUGIN.Version = V(0, 1, 3)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -44,7 +44,7 @@ IG.SaveProtocol = 0
 IG.ox = PLUGIN
 
 -- Define Config version
-IG.ConfigVersion = "0.0.5"
+IG.ConfigVersion = "0.0.7"
 
 -- Define Settings
 IG.Settings = {}
@@ -53,12 +53,13 @@ IG.Messages = {}
 
 -- Define Local config values
 IG.DefaultSettings = {
-  ChatName = "Inventory Guardian:",
+  ChatName = "Inventory Guardian",
   Enabled = true,
   RequiredAuthLevel = 2,
-  ConfigVersion = "0.0.5",
+  ConfigVersion = "0.0.7",
   RestoreUponDeath = false,
-  AutoRestore = true
+  AutoRestore = true,
+  KeepItemCondition = true
 }
 
 -- Define Plugin Messages:
@@ -94,6 +95,10 @@ IG.DefaultMessages = {
   PlayerStripedBack = "Player's \"%s\" inventory has been cleaned",
   AutoRestoreDetected = "Map wipe was detected!",
   AutoRestoreNotDetected = "Forced map wipe not detected!",
+  WipeRestoreOnce = "Restore once has been enabled to all players.",
+  RestoreOnce = "Restore once has been enabled to %s!",
+  KeepConditionEnabled = "Items condition restoration has been enabled!",
+  KeepConditionDisabled = "Items condition restoration has been disabled!",
 
   Help = {
     "/ig.save - Save your inventory for later restoration!",
@@ -107,7 +112,8 @@ IG.DefaultMessages = {
     "/ig.autorestore - Toggle (Enable/Disable) Automatic Restoration.",
     "/ig.authlevel <n/s> - Change Inventory Guardian required Auth Level.",
     "/ig.strip - Clear your current inventory.",
-    "/ig.strip <name> - Clear player current inventory."
+    "/ig.strip <name> - Clear player current inventory.",
+    "/ig.keepcondition - Toggle (Enable/Disable) Items condition restoration."
   }
 }
 
@@ -191,7 +197,7 @@ function IG:SaveInventory(player)
   -- Loop by the Belt Items
   while beltItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory[playerID]['belt'][tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['belt'][tostring(beltCount)] = {name = tostring(beltItems.Current.info.shortname), amount = beltItems.Current.amount, condition = beltItems.Current.condition, bp = beltItems.Current.isBlueprint}
     -- Increment the count
     beltCount = beltCount + 1
   end
@@ -199,7 +205,7 @@ function IG:SaveInventory(player)
   -- Loop by the Main Items
   while mainItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory[playerID]['main'][tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['main'][tostring(mainCount)] = {name = tostring(mainItems.Current.info.shortname), amount = mainItems.Current.amount, condition =  mainItems.Current.condition, bp = mainItems.Current.isBlueprint}
     -- Increment the count
     mainCount = mainCount + 1
   end
@@ -207,7 +213,7 @@ function IG:SaveInventory(player)
   -- Loop by the Wear Items
   while wearItems:MoveNext() do
     -- Save current item to player's inventory table
-    self.Data.GlobalInventory[playerID]['wear'][tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount}
+    self.Data.GlobalInventory[playerID]['wear'][tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount, condition = wearItems.Current.condition, bp = false}
     -- Increment the count
     wearCount = wearCount + 1
   end
@@ -295,6 +301,16 @@ function IG:RestoreInventory(player)
 
         -- Create an inventory item
         local itemEntity = global.ItemManager.CreateByName(item.name, item.amount)
+        
+        -- Check for Blueprint field
+        if item.bp then
+          -- Set Item as Blueprint
+          itemEntity.isBlueprint = true
+        -- Check for Health field
+        elseif item.condition and self.Settings.KeepItemCondition then
+          -- Define item health
+          itemEntity.condition = item.condition       
+        end
 
         -- Set that created inventory item to player
         player.inventory:GiveItem(itemEntity, Inventory[slot])
@@ -346,7 +362,7 @@ function IG:SendMessage(player, message)
       -- Check if player is connected
       if player then
         -- Send the message to the targetted player.
-        rust.SendChatMessage(player, self.Settings.ChatName, message)
+        rust.SendChatMessage(player, self.Settings.ChatName, message, rust.UserIDFromPlayer(player))
       end
     else
       self:Log(self.Settings.ChatName.." "..message)
@@ -373,6 +389,32 @@ function IG:ToggleRestoreUponDeath(player)
       self.Settings.RestoreUponDeath = true
       -- Send Message to Player
       self:SendMessage(player, self.Messages.RestoreUponDeathEnabled)
+    end
+
+    -- Save the config.
+    self.ox:SaveConfig()
+  end
+end
+
+-- -----------------------------------------------------------------------------------
+-- IG:ToogleKeepCondition()
+-- -----------------------------------------------------------------------------------
+-- Toogle the config KeepItemCondition
+-- -----------------------------------------------------------------------------------
+function IG:ToogleKeepCondition(player)
+  -- Check if Inventory Guardian is enabled
+  if self.Settings.Enabled then
+    -- Check if Keep Items Condition is enabled
+    if self.Settings.KeepItemCondition then
+      -- Disable Keep Items Condition
+      self.Settings.KeepItemCondition = false
+      -- Send Message to Player
+      self:SendMessage(player, self.Messages.KeepConditionDisabled)
+    else
+      -- Enable Restore Upon Death
+      self.Settings.KeepItemCondition = true
+      -- Send Message to Player
+      self:SendMessage(player, self.Messages.KeepConditionEnabled)
     end
 
     -- Save the config.
@@ -643,11 +685,11 @@ function IG:FindPlayersByName(playerName)
 end
 
 -- -----------------------------------------------------------------------------
--- IG:findPlayerByName(oPlayer, playerName)
+-- IG:FindPlayerByName(oPlayer, playerName)
 -- -----------------------------------------------------------------------------
 -- Searches the online players for a specific name.
 -- -----------------------------------------------------------------------------
-function IG:findPlayerByName(oPlayer, playerName)
+function IG:FindPlayerByName(oPlayer, playerName)
   -- Get a list of matched players
   local players = self:FindPlayersByName(playerName)
   local player = nil
@@ -735,6 +777,45 @@ function IG:LogError(message)
 end
 
 -- -----------------------------------------------------------------------------------
+-- IG:ClearRestoreOnce(player, param)
+-- -----------------------------------------------------------------------------------
+-- Clear restore once table
+function IG:ClearRestoreOnce(player, param)
+  -- Set original player
+  local oPlayer = player
+  
+  -- Check if player want to clear all
+  if param == "all" or param == "*" then
+    -- Wipe the whole Restore Once table
+    self.Data.RestoreOnce = {} 
+    -- Send message to player
+    self:SendMessage(player, self.Messages.WipeRestoreOnce)
+  elseif param ~= "" or param ~= " " then
+      -- Find player by Name
+      player = self:FindPlayerByName(player, param)
+      
+      -- Check if a player was found
+      if player ~= nil then
+        -- Get player ID
+        local playerID = rust.UserIDFromPlayer(player)
+        -- Delete playerID from Restore Once table
+        self.Data.RestoreOnce[playerID] = nil
+        -- Send message to player
+        self:SendMessage(player, self.Messages.RestoreOnce:format(player.displayName))
+      end  
+  else
+    -- Get player ID
+    local playerID = rust.UserIDFromPlayer(player)
+    -- Delete playerID from Restore Once table
+    self.Data.RestoreOnce[playerID] = nil
+    -- Send message to player
+    self:SendMessage(player, self.Messages.RestoreOnce:format(player.displayName))
+  end
+  -- Save data table
+  self.ox:SaveData()
+end
+
+-- -----------------------------------------------------------------------------------
 -- PLUGIN:OnServerInitialized()
 -- -----------------------------------------------------------------------------------
 -- On server initialisation finished the required in-game chat commands are registered and data
@@ -745,23 +826,27 @@ function PLUGIN:OnServerInitialized()
   IG.SaveProtocol = Rust.Protocol.save
 
   -- Add chat commands
-  command.AddChatCommand( "ig.save", self.Plugin, "cmdSaveInventory" )
-  command.AddChatCommand( "ig.restore", self.Plugin, "cmdRestoreInventory" )
-  command.AddChatCommand( "ig.restoreupondeath", self.Plugin, "cmdToggleRestoreUponDeath" )
-  command.AddChatCommand( "ig.delsaved", self.Plugin, "cmdDeleteInventory" )
-  command.AddChatCommand( "ig.toggle", self.Plugin, "cmdToggleInventoryGuardian" )
-  command.AddChatCommand( "ig.autorestore", self.Plugin, "cmdToggleAutoRestore" )
-  command.AddChatCommand( "ig.authlevel", self.Plugin, "cmdChangeAuthLevel" )
-  command.AddChatCommand( "ig.strip", self.Plugin, "cmdStripInv" )
+  command.AddChatCommand("ig.save", self.Plugin, "cmdSaveInventory")
+  command.AddChatCommand("ig.restore", self.Plugin, "cmdRestoreInventory")
+  command.AddChatCommand("ig.restoreupondeath", self.Plugin, "cmdToggleRestoreUponDeath")
+  command.AddChatCommand("ig.delsaved", self.Plugin, "cmdDeleteInventory")
+  command.AddChatCommand("ig.toggle", self.Plugin, "cmdToggleInventoryGuardian")
+  command.AddChatCommand("ig.autorestore", self.Plugin, "cmdToggleAutoRestore")
+  command.AddChatCommand("ig.authlevel", self.Plugin, "cmdChangeAuthLevel")
+  command.AddChatCommand("ig.strip", self.Plugin, "cmdStripInv")
+  command.AddChatCommand("ig.restoreonce", self.Plugin, "cmdClearRestoreOnce")
+  command.AddChatCommand("ig.keepcondition", self.Plugin, "cmdToogleKeepCondition")
 
   -- Add console commands
-  command.AddConsoleCommand( "ig.authlevel", self.Plugin, "ccmdChangeAuthLevel" )
-  command.AddConsoleCommand( "ig.toggle", self.Plugin, "ccmdToggleInventoryGuardian" )
-  command.AddConsoleCommand( "ig.restoreupondeath", self.Plugin, "ccmdToggleRestoreUponDeath" )
-  command.AddConsoleCommand( "ig.autorestore", self.Plugin, "ccmdToggleAutoRestore" )
-  command.AddConsoleCommand( "ig.restoreall", self.Plugin, "ccmdRestoreAll" )
-  command.AddConsoleCommand( "ig.saveall", self.Plugin, "ccmdSaveAll" )
-  command.AddConsoleCommand( "ig.deleteall", self.Plugin, "ccmdDeleteAll" )
+  command.AddConsoleCommand("ig.authlevel", self.Plugin, "ccmdChangeAuthLevel")
+  command.AddConsoleCommand("ig.toggle", self.Plugin, "ccmdToggleInventoryGuardian")
+  command.AddConsoleCommand("ig.restoreupondeath", self.Plugin, "ccmdToggleRestoreUponDeath")
+  command.AddConsoleCommand("ig.autorestore", self.Plugin, "ccmdToggleAutoRestore")
+  command.AddConsoleCommand("ig.restoreall", self.Plugin, "ccmdRestoreAll")
+  command.AddConsoleCommand("ig.saveall", self.Plugin, "ccmdSaveAll")
+  command.AddConsoleCommand("ig.deleteall", self.Plugin, "ccmdDeleteAll")
+  command.AddConsoleCommand("ig.restoreonce", self.Plugin, "ccmdClearRestoreOnce")
+  command.AddConsoleCommand("ig.keepcondition", self.Plugin, "ccmdToogleKeepCondition")
 
   -- Load default saved data
   self:LoadSavedData()
@@ -879,7 +964,7 @@ function PLUGIN:cmdSaveInventory(player, _, args)
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName(oPlayer, args[0])
+        tPlayer = IG:FindPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -919,7 +1004,7 @@ function PLUGIN:cmdRestoreInventory(player, _, args)
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName(oPlayer, args[0])
+        tPlayer = IG:FindPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -959,7 +1044,7 @@ function PLUGIN:cmdDeleteInventory(player, _, args)
       -- Check if arg is not empty
       if args[0] ~= "" or args[0] ~= " " then
         -- Find a player by name
-        tPlayer = IG:findPlayerByName(oPlayer, args[0])
+        tPlayer = IG:FindPlayerByName(oPlayer, args[0])
 
         -- Check if player is valid
         if tPlayer ~= nil then
@@ -1039,6 +1124,19 @@ function PLUGIN:cmdToggleRestoreUponDeath(player)
 end
 
 -- -----------------------------------------------------------------------------------
+-- PLUGIN:cmdToogleKeepCondition(player)
+-- -----------------------------------------------------------------------------------
+-- Enable/Disable Keep Items Condition
+-- -----------------------------------------------------------------------------------
+function PLUGIN:cmdToogleKeepCondition(player)
+  -- Check if Inventory Guardian is enabled
+  if IG:Check(player) then
+    -- Toggle keep items condition
+    IG:ToogleKeepCondition(player)
+  end
+end
+
+-- -----------------------------------------------------------------------------------
 -- PLUGIN:ccmdChangeAuthLevel(arg)
 -- -----------------------------------------------------------------------------------
 -- Change required Auth Level
@@ -1059,6 +1157,16 @@ end
 function PLUGIN:ccmdToggleInventoryGuardian()
   -- Restore Player inventory
   IG:ToggleInventoryGuardian(nil)
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:ccmdToogleKeepCondition()
+-- -----------------------------------------------------------------------------------
+-- Enable/Disable Keep Items Condition
+-- -----------------------------------------------------------------------------------
+function PLUGIN:ccmdToogleKeepCondition()
+  -- Toggle keep items condition
+  IG:ToogleKeepCondition(nil)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -1112,7 +1220,7 @@ function PLUGIN:ccmdDeleteAll()
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:AutomaticRestoration ()
+-- PLUGIN:cmdStripInv(player, _, args)
 -- -----------------------------------------------------------------------------------
 -- Strip player inventory
 -- ----------------------------------------------------------------------------------
@@ -1121,17 +1229,20 @@ function PLUGIN:cmdStripInv(player, _, args)
   local oPlayer = player
   local tPlayer = nil
 
-  -- Check if arg is not empty
-  if args[0] ~= "" or args[0] ~= " " then
-    -- Find a player by name
-    tPlayer = IG:findPlayerByName(oPlayer, args[0])
-
-    -- Check if player is valid
-    if tPlayer ~= nil then
-      -- Set player as the founded player
-      player = tPlayer
-    else
-      return nil
+    -- Check if any arg was passed
+    if args.Length == 1 then
+      -- Check if arg is not empty
+      if args[0] ~= "" or args[0] ~= " " then
+        -- Find a player by name
+        tPlayer = IG:FindPlayerByName(oPlayer, args[0])
+    
+        -- Check if player is valid
+        if tPlayer ~= nil then
+          -- Set player as the founded player
+          player = tPlayer
+        else
+          return nil
+        end
     end
   end
 
@@ -1151,6 +1262,7 @@ function PLUGIN:cmdStripInv(player, _, args)
     -- Send message to oPlayer
     IG:SendMessage(oPlayer, self.Config.Messages.SelfStriped)
   end
+  
 end
 
 -- -----------------------------------------------------------------------------------

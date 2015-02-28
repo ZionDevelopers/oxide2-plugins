@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.7 by Nexus on 02-09-2015 08:51 PM (UTC -03:00)
+ Version 0.0.8 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 7)
+PLUGIN.Version = V(0, 0, 8)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 760
@@ -34,7 +34,7 @@ local Warp = {}
 Warp.Data = {}
 Warp.PreviousLocation = {}
 Warp.Timers = {}
-Warp.ConfigVersion = "0.0.3"
+Warp.ConfigVersion = "0.0.4"
 Warp.ox = PLUGIN
 
 -- Define Settings
@@ -45,8 +45,8 @@ Warp.Messages = {}
 
 -- General Settings:
 Warp.DefaultSettings = {
-  ChatName = "Warp:",
-  ConfigVersion = "0.0.3",
+  ChatName = "Warp",
+  ConfigVersion = "0.0.4",
   Enabled = true,
   RequiredAuthLevel = 2,
   EnableCooldown = true,
@@ -370,7 +370,7 @@ function Warp:SendMessage(player, message)
       -- Check if player is connected
       if player then
         -- Send the message to player
-        rust.SendChatMessage(player, self.Settings.ChatName, message)
+        rust.SendChatMessage(player, self.Settings.ChatName, message, rust.UserIDFromPlayer(player))
       end
     else
       self:Log("["..self.Settings.ChatName.."] "..message )

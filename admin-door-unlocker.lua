@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.9 by Nexus on 02-10-2015 12:11 AM (UTC -03:00)
+ Version 0.1.3 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
-PLUGIN.Description = "Unlocks any door for Admins"
-PLUGIN.Version = V(0, 0, 9)
+PLUGIN.Description = "Unlock any door/box for Admins"
+PLUGIN.Version = V(0, 1, 0)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
@@ -32,7 +32,7 @@ PLUGIN.ResourceId = 756
 local ADU = {}
 
 -- Define Config version
-ADU.ConfigVersion = "0.0.2"
+ADU.ConfigVersion = "0.0.3"
 
 -- Get a Copy of PLUGIN Class
 ADU.ox = PLUGIN
@@ -44,10 +44,10 @@ ADU.Messages = {}
 
 -- General Settings:
 ADU.DefaultSettings = {
-  ChatName = "A.D.U:",
+  ChatName = "A.D.U",
   Enabled = true,
   RequiredAuthLevel = 2,
-  ConfigVersion = "0.0.2"
+  ConfigVersion = "0.0.3"
 }
 
 -- Plugin Messages:
@@ -101,7 +101,7 @@ function ADU:SendMessage(player, message)
       -- Check if player is connected
       if player then
         -- Send the message to the targetted player
-        rust.SendChatMessage(player, self.Settings.ChatName, message)
+        rust.SendChatMessage(player, self.Settings.ChatName, message, rust.UserIDFromPlayer(player))
       end
     else
       self:Log(self.Settings.ChatName.." "..message )
