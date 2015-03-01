@@ -168,7 +168,7 @@ function IG:ClearSavedInventory(player)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:SavePlayerInventory(player)
+-- IG:SaveInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Save player inventory
 -- -----------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ function IG:Count(tbl)
 end
 
 -- -----------------------------------------------------------------------------------
--- IG:RestorePlayerInventory(player)
+-- IG:RestoreInventory(player)
 -- -----------------------------------------------------------------------------------
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
@@ -947,7 +947,7 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:OnPlayerDisconnected(player)
   -- Save player inventory
-  IG:SavePlayerInventory(player)
+  IG:SaveInventory(player)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -963,14 +963,14 @@ function PLUGIN:OnEntityDeath(entity)
   if player then
     -- Grab the player his/her SteamID.
     local playerID = rust.UserIDFromPlayer(player)
-
+    
     -- Add playerID to player death list
     IG.PlayerDeaths[playerID] = true
 
     -- Check if the Restore upon death is enabled
     if self.Config.Settings.RestoreUponDeath then
       -- Save player inventory
-      IG:SavePlayerInventory(player)
+      IG:SaveInventory(player)
     else
       -- Reset saved inventory
       IG:ClearSavedInventory(player)
@@ -988,11 +988,13 @@ function PLUGIN:OnPlayerSpawn(player)
   local playerID = rust.UserIDFromPlayer(player)
 
   -- Check if saved inventory is empty
-  if not IG:SavedInventoryIsEmpty (player) then
+  if not IG:SavedInventoryIsEmpty(player) then
     -- Check if Once Restoration is enabled and if player never got once restored or if Once Restoration is disabled or if the Restore upon death is enabled and if player just died or If player never died = First spawn
     if IG.Data.RestoreOnce [playerID] == nil or (self.Config.Settings.RestoreUponDeath and IG.PlayerDeaths[playerID] == true) or IG.PlayerDeaths[playerID] == nil then
       -- Restore player inventory
-      IG:RestorePlayerInventory ( player )
+      IG:RestoreInventory(player)
+      -- Send message to user
+      IG:SendMessage(player, self.Config.Messages.Restored)
       -- Add Player ID to Once Restorated List
       IG.Data.RestoreOnce [playerID] = true
       -- Reset saved inventory
