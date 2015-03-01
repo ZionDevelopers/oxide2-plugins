@@ -10,7 +10,7 @@
  
  $Id$
  Version 0.0.9 by Nexus on 2015-03-01 10:30 AM (UTC -03:00)
-]]
+]]--
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
