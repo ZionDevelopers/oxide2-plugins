@@ -315,11 +315,15 @@ function PLUGIN:cmdChangeAuthLevel(player, _, args)
       -- Send message to player
       ADU:SendMessage(player, self.Config.Messages.InvalidAuthLevel)
     end
+  -- Check if player is not allowed and A.D.U is enabled
+  elseif not ADU:IsAllowed(player) and self.Config.Settings.Enabled then
+    -- Send message to player
+    ADU:SendMessage(player, self.Config.Messages.NotAllowed:format(self.Config.Settings.RequiredAuthLevel))  
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdToggleInventoryGuardian(player)
+-- PLUGIN:cmdToggleADU(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
@@ -330,7 +334,7 @@ function PLUGIN:cmdToggleADU(player)
     ADU:Toggle(player)
   else
     -- Send message to player
-    ADU:SendMessage(player, self.Config.Messages.NotAllowed:format())
+    ADU:SendMessage(player, self.Config.Messages.NotAllowed:format(self.Config.Settings.RequiredAuthLevel))
   end
 end
 
