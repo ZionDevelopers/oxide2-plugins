@@ -89,9 +89,11 @@ IG.DefaultMessages = {
   DeletedPlayerInventory = "Player \"%s\" saved inventory has been deleted!",
   DeleteAll = "All players inventories has been deleted!",
   DeleteInit = "Initiating all players inventories deletion...",
+  StripInit = "Initiating all players inventories strips...",
+  StripAll = "All players inventories has been stripped!",
   SelfStriped = "Your current inventory has been cleaned!",
   PlayerStriped = "Your current inventory has been cleaned by \"%s\"",
-  PlayerStripedBack = "Player's \"%s\" inventory has been cleaned.",
+  PlayerStripedBack = "Player \"%s\" inventory has been cleaned.",
   AutoRestoreDetected = "Map wipe was detected!",
   AutoRestoreNotDetected = "Forced map wipe not detected!",
   WipeRestoreOnce = "Restore once has been enabled to all players.",
@@ -671,6 +673,55 @@ function IG:DeleteAll(param)
   end
 end
 
+-- -----------------------------------------------------------------------------------
+-- IG:StripAll(param)
+-- -----------------------------------------------------------------------------------
+-- Strip all players inventories
+-- -----------------------------------------------------------------------------------
+function IG:StripAll(param)
+  -- Send message
+  self:SendMessage(param, self.Messages.StripInit)
+
+  -- Get all players
+  local players = UnityEngine.Object.FindObjectsOfTypeAll(global.BasePlayer._type)
+  local player = nil
+  local playerID = 0
+  local i = 0
+
+  -- Loop by all players
+  for i = 0, (players.Length-1) do
+    -- Get current player
+    player = players[i]
+
+    -- Get PlayerID
+    playerID = rust.UserIDFromPlayer(player)
+    
+    -- Check if player have a valid Player ID
+    if playerID ~= "0" then
+      -- Clear player Inventory
+      player.inventory:Strip()
+      
+      -- Send message to player
+      self:SendMessage(param, self.Messages.PlayerStripedBack:format(player.displayName))
+      
+      -- Check if player is connected
+      if self:PlayerIsConnected(player) then
+        -- Send message to Oplayer
+        IG:SendMessage(player, self.Messages.PlayerStriped:format("admin"))
+      end
+    end
+
+    -- Add timer
+    timer.Once(1, function ()
+      -- Check if loop is done
+      if (players.Length-1) == i then
+        -- Send message
+        self:SendMessage(param, self.Messages.StripAll)
+      end
+    end)
+  end
+end
+
 -- -----------------------------------------------------------------------------
 -- IG:FindPlayersByName(playerName)
 -- -----------------------------------------------------------------------------
@@ -865,6 +916,7 @@ function PLUGIN:OnServerInitialized()
   command.AddConsoleCommand("ig.delsaved", self.Plugin, "ccmdDeleteInventory")
   command.AddConsoleCommand("ig.save", self.Plugin, "ccmdSaveInventory")
   command.AddConsoleCommand("ig.restore", self.Plugin, "ccmdRestoreInventory")
+  command.AddConsoleCommand("ig.stripall", self.Plugin, "ccmdStripAll")
 
   -- Load default saved data
   self:LoadSavedData()
@@ -1255,8 +1307,18 @@ end
 -- Delete All players inventories
 -- -----------------------------------------------------------------------------------
 function PLUGIN:ccmdDeleteAll(arg)
-  -- Save all players inventories
+  -- Delete all players inventories
   IG:DeleteAll(arg)
+end
+
+-- -----------------------------------------------------------------------------------
+-- PLUGIN:ccmdStripAll()
+-- -----------------------------------------------------------------------------------
+-- Delete All players inventories
+-- -----------------------------------------------------------------------------------
+function PLUGIN:ccmdStripAll(arg)
+  -- Strip all players inventories
+  IG:StripAll(arg)
 end
 
 -- -----------------------------------------------------------------------------------
