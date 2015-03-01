@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.3 by Nexus on 2015-03-01 10:30 AM (UTC -03:00)
-]]
+ Version 0.1.4 by Nexus on 2015-03-01 01:10 PM (UTC -03:00)
+]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 3)
+PLUGIN.Version = V(0, 1, 4)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
