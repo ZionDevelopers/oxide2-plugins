@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.1.0 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
+ Version 0.1.1 by Nexus on 2015-03-01 10:30 AM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlock any door/box for Admins"
-PLUGIN.Version = V(0, 1, 0)
+PLUGIN.Version = V(0, 1, 1)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
@@ -32,7 +32,7 @@ PLUGIN.ResourceId = 756
 local ADU = {}
 
 -- Define Config version
-ADU.ConfigVersion = "0.0.3"
+ADU.ConfigVersion = "0.0.4"
 
 -- Get a Copy of PLUGIN Class
 ADU.ox = PLUGIN
@@ -47,7 +47,7 @@ ADU.DefaultSettings = {
   ChatName = "A.D.U",
   Enabled = true,
   RequiredAuthLevel = 2,
-  ConfigVersion = "0.0.3"
+  ConfigVersion = "0.0.4"
 }
 
 -- Plugin Messages:
@@ -57,6 +57,7 @@ ADU.DefaultMessages = {
   AuthLevelChanged = "You changed the required Auth Level to %d!",
   InvalidAuthLevel = "You need pass a valid auth level like: admin, owner, mod, moderator, user, player, 0 or 1 or 2!",
   NotAllowed = "You cannot use that command because you don't have the required Auth Level %d!",
+  AuthLog = " %s by %s (%s)",
 
   Help = {
     "/adu.toggle - Toggle (Enable/Disable) A.D.U!",
@@ -72,6 +73,10 @@ ADU.DefaultMessages = {
 function ADU:UpdateConfig()
   -- Check if the current config version differs from the saved
   if self.ox.Config.Settings.ConfigVersion ~= self.ConfigVersion then
+    -- Reset the whole table
+    self.ox.Config.Settings = {}
+    self.ox.Config.Messages = {}
+    
     -- Load the default
     self.ox:LoadDefaultConfig()
     -- Save config
@@ -84,27 +89,40 @@ function ADU:UpdateConfig()
 end
 
 -- -----------------------------------------------------------------------------
--- ADU:SendMessage(player, message)
+-- ADU:SendMessage(param, message)
 -- -----------------------------------------------------------------------------
--- Sends a chatmessage to a player.
+-- Sends a chatmessage to a player/console
 -- -----------------------------------------------------------------------------
-function ADU:SendMessage(player, message)
+function ADU:SendMessage(param, message)
   -- Check if the message is a table with multiple messages.
   if type(message) == "table" then
     -- Loop by table of messages and send them one by one
     for i, message in pairs(message) do
-      self:SendMessage(player, message)
+      -- Loop back
+      self:SendMessage(param, message)
     end
   else
-    -- Check if we have an existing target to send the message to.
-    if player ~= nil then
-      -- Check if player is connected
-      if player then
-        -- Send the message to the targetted player
-        rust.SendChatMessage(player, self.Settings.ChatName, message, rust.UserIDFromPlayer(player))
+    -- Check if param is not null
+    if param ~= nil then
+      -- Check if call came from user's chat or console
+      if type(param.net) == 'userdata' then
+          -- Send the message to the targetted player.
+         rust.SendChatMessage(param, self.Settings.ChatName, message, rust.UserIDFromPlayer(param))
+      elseif type(param.net) == 'string' then    
+        -- Check if was passed by client's console 
+        if param.connection then
+          -- Reply back to player's console
+          param:ReplyWith(self.Settings.ChatName..": "..message) 
+          -- Send message with authLog to console
+          self:SendMessage(nil, self.Messages.AuthLog:format(message, param.connection.player.displayName, rust.UserIDFromPlayer(param.connection.player)))
+        else
+          -- Send message to console
+          self:SendMessage(nil, message)
+        end
       end
     else
-      self:Log(self.Settings.ChatName.." "..message )
+      -- Log
+      self:Log(self.Settings.ChatName..": "..message) 
     end
   end
 end
@@ -194,8 +212,7 @@ end
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function ADU:Log(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil, arr)
+  UnityEngine.Debug.Log.methodarray[0]:Invoke(nil, util.TableToArray({message}))
 end
 
 -- -----------------------------------------------------------------------------------
@@ -206,8 +223,7 @@ end
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function ADU:LogWarning(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil, arr)
+  UnityEngine.Debug.LogWarning.methodarray[0]:Invoke(nil, util.TableToArray({message}))
 end
 
 -- -----------------------------------------------------------------------------------
@@ -218,8 +234,7 @@ end
 -- Credit: HooksTest
 -- -----------------------------------------------------------------------------------
 function ADU:LogError(message)
-  local arr = util.TableToArray({message})
-  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil, arr)
+  UnityEngine.Debug.LogError.methodarray[0]:Invoke(nil, util.TableToArray({message}))
 end
 
 -- -----------------------------------------------------------------------------------
@@ -304,18 +319,18 @@ function PLUGIN:cmdChangeAuthLevel(player, _, args)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:cmdToggleInventoryGuardian ( player )
+-- PLUGIN:cmdToggleInventoryGuardian(player)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function PLUGIN:cmdToggleADU ( player )
+function PLUGIN:cmdToggleADU(player)
   -- Check if Inventory Guardian is enabled and If player is allowed
   if ADU:IsAllowed(player) then
     -- Restore Player inventory
     ADU:Toggle(player)
   else
     -- Send message to player
-    ADU:SendMessage(player, self.Config.Messages.NotAllowed:format(2))
+    ADU:SendMessage(player, self.Config.Messages.NotAllowed:format())
   end
 end
 
@@ -341,21 +356,21 @@ end
 -- -----------------------------------------------------------------------------------
 function PLUGIN:ccmdChangeAuthLevel(arg)
   -- Check for passed args
-  if arg.Args.Length == 1 then
+  if arg:HasArgs(1) then
     -- Change required Auth level
-    ADU:ChangeAuthLevel(nil, arg.Args[0])
-  elseif arg.Args.Length == 0 then
+    ADU:ChangeAuthLevel(arg, arg.Args[0])
+  else
     -- Send message to player
-    ADU:SendMessage(nil, self.Config.Messages.InvalidAuthLevel)
+    ADU:SendMessage(arg, self.Config.Messages.InvalidAuthLevel)
   end
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:ccmdToggleInventoryGuardian ()
+-- PLUGIN:ccmdToggleInventoryGuardian(arg)
 -- -----------------------------------------------------------------------------------
 -- Enable/Disable Inventory Guardian
 -- -----------------------------------------------------------------------------------
-function PLUGIN:ccmdToggleADU ()
+function PLUGIN:ccmdToggleADU(arg)
   -- Restore Player inventory
-  ADU:Toggle(nil)
+  ADU:Toggle(arg)
 end

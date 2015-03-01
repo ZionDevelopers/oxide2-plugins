@@ -17,13 +17,13 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  $Id$
- Version 0.0.8 by Nexus on 02-28-2015 07:01 PM (UTC -03:00)
-]]--
+ Version 0.0.9 by Nexus on 2015-03-01 10:30 AM (UTC -03:00)
+]]
 
 PLUGIN.Name = "warp-system"
 PLUGIN.Title = "Warp System"
 PLUGIN.Description = "Create teleport points with a custom command"
-PLUGIN.Version = V(0, 0, 8)
+PLUGIN.Version = V(0, 0, 9)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 760
@@ -34,7 +34,7 @@ local Warp = {}
 Warp.Data = {}
 Warp.PreviousLocation = {}
 Warp.Timers = {}
-Warp.ConfigVersion = "0.0.4"
+Warp.ConfigVersion = "0.0.5"
 Warp.ox = PLUGIN
 
 -- Define Settings
@@ -46,7 +46,7 @@ Warp.Messages = {}
 -- General Settings:
 Warp.DefaultSettings = {
   ChatName = "Warp",
-  ConfigVersion = "0.0.4",
+  ConfigVersion = "0.0.5",
   Enabled = true,
   RequiredAuthLevel = 2,
   EnableCooldown = true,
@@ -78,6 +78,7 @@ Warp.DefaultMessages = {
   Pending = "You cannot use a Warp now, Because you are still waiting to get Warped!",
   Started = "Your request is on the wait list, It will start in %d secs.",
   NoPreviousLocationSaved  = "No previous location saved!",
+  AuthLog = " %s by %s (%s)",
 
   -- Error Messages:
   NotFound = "Couldn't find the %s warp !",
@@ -122,6 +123,10 @@ Warp.DefaultMessages = {
 function Warp:UpdateConfig()
   -- Check if the current config version differs from the saved
   if self.ox.Config.Settings.ConfigVersion ~= self.ConfigVersion then
+    -- Reset the whole table
+    self.ox.Config.Settings = {}
+    self.ox.Config.Messages = {}
+    
     -- Load the default
     self.ox:LoadDefaultConfig()
     -- Save config
@@ -353,27 +358,40 @@ function Warp:Go(player, destination)
 end
 
 -- -----------------------------------------------------------------------------
--- Warp:SendMessage(player, message)
+-- Warp:SendMessage(param, message)
 -- -----------------------------------------------------------------------------
--- Sends a chatmessage to a player.
+-- Sends a chatmessage to a player/console
 -- -----------------------------------------------------------------------------
-function Warp:SendMessage(player, message)
+function Warp:SendMessage(param, message)
   -- Check if the message is a table with multiple messages.
   if type(message) == "table" then
     -- Loop by table of messages and send them one by one
     for i, message in pairs(message) do
-      self:SendMessage(player, message)
+      -- Loop back
+      self:SendMessage(param, message)
     end
   else
-    -- Check if we have an existing target to send the message to.
-    if player ~= nil then
-      -- Check if player is connected
-      if player then
-        -- Send the message to player
-        rust.SendChatMessage(player, self.Settings.ChatName, message, rust.UserIDFromPlayer(player))
+    -- Check if param is not null
+    if param ~= nil then
+      -- Check if call came from user's chat or console
+      if type(param.net) == 'userdata' then
+          -- Send the message to the targetted player.
+         rust.SendChatMessage(param, self.Settings.ChatName, message, rust.UserIDFromPlayer(param))
+      elseif type(param.net) == 'string' then    
+        -- Check if was passed by client's console 
+        if param.connection then
+          -- Reply back to player's console
+          param:ReplyWith(self.Settings.ChatName..": "..message) 
+          -- Send message with authLog to console
+          self:SendMessage(nil, self.Messages.AuthLog:format(message, param.connection.player.displayName, rust.UserIDFromPlayer(param.connection.player)))
+        else
+          -- Send message to console
+          self:SendMessage(nil, message)
+        end
       end
     else
-      self:Log("["..self.Settings.ChatName.."] "..message )
+      -- Log
+      self:Log(self.Settings.ChatName..": "..message) 
     end
   end
 end
