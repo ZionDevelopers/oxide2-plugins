@@ -215,7 +215,7 @@ function IG:SaveInventory(player)
     self.Data.GlobalInventory[playerID]['wear'][tostring(wearCount)] = {name = tostring(wearItems.Current.info.shortname), amount = wearItems.Current.amount, condition = wearItems.Current.condition, bp = false}
     -- Increment the count
     wearCount = wearCount + 1
-  end
+  end  
 
   -- Save inventory data
   self.ox:SaveData()
@@ -263,13 +263,13 @@ end
 -- Restore player inventory
 -- -----------------------------------------------------------------------------------
 function IG:RestoreInventory(player)
+  -- Grab the player his/her SteamID.
+  local playerID = rust.UserIDFromPlayer(player)
   -- Clear player Inventory
   player.inventory:Strip()
 
   -- This fixes the incomplete restoration process
   timer.Once (1, function ()
-    -- Grab the player his/her SteamID.
-    local playerID = rust.UserIDFromPlayer(player)
     -- Get Player inventory list
     local belt = player.inventory.containerBelt
     local main = player.inventory.containerMain
