@@ -9,13 +9,13 @@
  -----------------------------------------------------------------------------------------------------------------
  
  $Id$
- Version 0.1.4 by Nexus on 2015-03-01 01:10 PM (UTC -03:00)
+ Version 0.1.5 by Nexus on 2015-04-11 06:15 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "Inventory-Guardian"
 PLUGIN.Title = "Inventory Guardian"
 PLUGIN.Description = "Keep players inventory after server wipes"
-PLUGIN.Version = V(0, 1, 4)
+PLUGIN.Version = V(0, 1, 5)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 773
@@ -971,11 +971,11 @@ function PLUGIN:OnEntityDeath(entity)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:OnPlayerSpawn(player)
+-- PLUGIN:OnPlayerRespawned(player)
 -- -----------------------------------------------------------------------------------
--- When a player spawn
+-- When a player respawn
 -- -----------------------------------------------------------------------------------
-function PLUGIN:OnPlayerSpawn(player)
+function PLUGIN:OnPlayerRespawned(player)
   -- Grab the player his/her SteamID.
   local playerID = rust.UserIDFromPlayer(player)
 

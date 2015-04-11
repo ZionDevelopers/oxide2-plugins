@@ -9,13 +9,13 @@
  -----------------------------------------------------------------------------------------------------------------
  
  $Id$
- Version 0.1.1 by Nexus on 2015-03-01 10:30 AM (UTC -03:00)
+ Version 0.1.2 by Nexus on 2015-04-11 06:05 PM (UTC -03:00)
 ]]--
 
 PLUGIN.Name = "admin-door-unlocker"
 PLUGIN.Title = "Admin door Unlocker"
 PLUGIN.Description = "Unlock any door/box for Admins"
-PLUGIN.Version = V(0, 1, 1)
+PLUGIN.Version = V(0, 1, 2)
 PLUGIN.Author = "Nexus"
 PLUGIN.HasConfig = true
 PLUGIN.ResourceId = 756
@@ -331,11 +331,11 @@ function PLUGIN:cmdToggleADU(player)
 end
 
 -- -----------------------------------------------------------------------------------
--- PLUGIN:CanOpenDoor()
+-- PLUGIN:CanUseDoor()
 -- -----------------------------------------------------------------------------------
 -- When any player try to open any door this function is trigged
 -- -----------------------------------------------------------------------------------
-function PLUGIN:CanOpenDoor(player, door)
+function PLUGIN:CanUseDoor(player, door)
   -- Check if player is admin
   if ADU:IsAllowed(player) and self.Config.Settings.Enabled then
     -- Unlock the door
